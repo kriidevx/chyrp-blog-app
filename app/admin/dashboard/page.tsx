@@ -1,8 +1,16 @@
-export default function AdminDashboardPage() {
-  return (
-    <div>
-      <h1 className="text-xl font-bold mb-2">Admin Dashboard</h1>
-      <p>Welcome to the dashboard! Here, admins can manage posts, review comments, and moderate content.</p>
-    </div>
-  );
+"use client";
+import { useRole } from "@/lib/useRole";
+import { useRouter } from "next/navigation";
+
+export default function AdminDashboard() {
+  const role = useRole();
+  const router = useRouter();
+
+  if (role === null) return <p>Loading...</p>;
+  if (role !== "admin") {
+    router.push("/"); // not allowed
+    return null;
+  }
+
+  return <h1 className="p-6">Admin Dashboard</h1>;
 }

@@ -3,27 +3,31 @@
 import Link from "next/link";
 import { useState } from "react";
 import ThemeToggle from "./ThemeToggle";
-import { useSession, useSupabaseClient } from "@supabase/auth-helpers-react";
+import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/app/providers/AuthProvider"; // 👈 use our provider
 
 export default function Navbar() {
+  const { user, loading } = useAuth(); // 👈 get user + loading state
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const session = useSession();
-  const supabase = useSupabaseClient();
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
     setMobileMenuOpen(false);
+    window.location.href = "/";
   };
 
   return (
     <nav className="bg-white dark:bg-gray-900 shadow-md sticky top-0 z-50 border-b border-gray-200 dark:border-gray-700">
       <div className="container mx-auto flex items-center justify-between px-6 py-4">
         {/* Logo */}
-        <Link href="/" className="text-3xl font-extrabold text-blue-700 dark:text-blue-400">
+        <Link
+          href="/"
+          className="text-3xl font-extrabold text-blue-700 dark:text-blue-400"
+        >
           Chyrp Modernized
         </Link>
 
-        {/* Desktop Menu - hidden on small screens */}
+        {/* Desktop Menu */}
         <div className="hidden md:flex space-x-8 items-center text-lg font-medium text-gray-700 dark:text-gray-300">
           <Link href="/" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-200 rounded px-2 py-1">
             Home
@@ -34,10 +38,13 @@ export default function Navbar() {
           <Link href="/contact" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-200 rounded px-2 py-1">
             Contact
           </Link>
-          {session ? (
+          {!loading && user ? (
             <>
-              <Link href="/admin/dashboard" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-200 rounded px-2 py-1">
-                Dashboard
+              <Link
+                href="/profile" // 👈 redirect logged-in users here
+                className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-200 rounded px-2 py-1"
+              >
+                Profile
               </Link>
               <button
                 onClick={handleLogout}
@@ -48,14 +55,17 @@ export default function Navbar() {
               </button>
             </>
           ) : (
-            <Link href="/login" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-200 rounded px-2 py-1">
+            <Link
+              href="/login"
+              className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-200 rounded px-2 py-1"
+            >
               Login
             </Link>
           )}
           <ThemeToggle />
         </div>
 
-        {/* Mobile Menu Button - shows only on small screens */}
+        {/* Mobile Menu Button */}
         <div className="flex md:hidden items-center space-x-4">
           <ThemeToggle />
           <button
@@ -64,11 +74,11 @@ export default function Navbar() {
             className="text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-md"
           >
             {mobileMenuOpen ? (
-              <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" >
+              <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             ) : (
-              <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" >
+              <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
               </svg>
             )}
@@ -88,10 +98,10 @@ export default function Navbar() {
           <Link href="/contact" onClick={() => setMobileMenuOpen(false)} className="block hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-200 rounded px-2 py-1">
             Contact
           </Link>
-          {session ? (
+          {!loading && user ? (
             <>
-              <Link href="/admin/dashboard" onClick={() => setMobileMenuOpen(false)} className="block hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-200 rounded px-2 py-1">
-                Dashboard
+              <Link href="/profile" onClick={() => setMobileMenuOpen(false)} className="block hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-200 rounded px-2 py-1">
+                Profile
               </Link>
               <button
                 onClick={handleLogout}
