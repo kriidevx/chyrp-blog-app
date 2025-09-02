@@ -10,6 +10,16 @@ type Post = {
   excerpt: string;
   slug: string;
   created_at: string;
+  author: string;
+  publishedAt: string;
+  readTime: number;
+  views: number;
+  likes: number;
+  comments: number;
+  tags: string[];
+  image?: string;
+  featured?: boolean;
+  trending?: boolean;
 };
 
 export default function HomePage() {
@@ -20,9 +30,26 @@ export default function HomePage() {
     async function fetchPosts() {
       try {
         const { data, error } = await supabase.from("posts").select("*").order("created_at", { ascending: false });
-
         if (error) throw error;
-        setPosts(data || []);
+        setPosts(
+          (data || []).map((post: any) => ({
+            id: post.id,
+            title: post.title,
+            excerpt: post.excerpt,
+            slug: post.slug,
+            created_at: post.created_at,
+            author: post.author || "Unknown",
+            publishedAt: post.publishedAt || post.created_at || "",
+            readTime: post.readTime || 0,
+            views: post.views || 0,
+            likes: post.likes || 0,
+            comments: post.comments || 0,
+            tags: post.tags || [],
+            image: post.image,
+            featured: post.featured || false,
+            trending: post.trending || false,
+          }))
+        );
       } catch (err) {
         console.error(err);
       } finally {

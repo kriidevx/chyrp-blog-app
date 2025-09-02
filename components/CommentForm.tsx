@@ -3,19 +3,19 @@
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 
-type Comment = {
+interface Comment {
   id: string;
-  author: string;
   content: string;
+  author: string;
   created_at: string;
-};
+}
 
 type CommentFormProps = {
   postId: string;
-  onNewComment?: (comment: Comment) => void;
+  onCommentAdded?: (comment: Comment) => void;
 };
 
-export default function CommentForm({ postId, onNewComment }: CommentFormProps) {
+export default function CommentForm({ postId, onCommentAdded }: CommentFormProps) {
   const [content, setContent] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -51,7 +51,7 @@ export default function CommentForm({ postId, onNewComment }: CommentFormProps) 
       if (insertError || !newComment) throw insertError || new Error("Failed to insert comment");
 
       setContent("");
-      if (onNewComment) onNewComment(newComment as Comment);
+      if (onCommentAdded) onCommentAdded(newComment as Comment);
     } catch (error) {
       console.error(error);
       alert("Error submitting comment.");

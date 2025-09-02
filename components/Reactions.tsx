@@ -1,3 +1,4 @@
+'use client';
 import { supabase } from "@/lib/supabase";
 const emojis = ["👍", "🎉", "😂", "😮", "❤️"];
 export default function Reactions({ postId }: { postId: string }) {
@@ -12,4 +13,3 @@ export default function Reactions({ postId }: { postId: string }) {
     </div>
   );
 }
- 
