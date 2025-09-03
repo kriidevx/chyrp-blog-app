@@ -1,7 +1,7 @@
-# Node modules
+# Node.js dependencies
 node_modules/
 
-# Next.js build output
+# Next.js build output and cache
 .next/
 out/
 
@@ -11,7 +11,7 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
-# Runtime data
+# Runtime data files
 pids
 *.pid
 *.seed
@@ -24,9 +24,36 @@ pids
 .env.test.local
 .env.production.local
 
-# Vercel / deployment
+# Vercel deployment files
 .vercel/
 
-# Mac/Windows system files
+# Editor directories and system files
+.vscode/
+.idea/
 .DS_Store
 Thumbs.db
+
+# Test coverage output
+coverage/
+.nyc_output/
+
+# Compiled binary addons
+build/Release/
+
+# Optional npm cache
+.npm/
+
+# REPL history
+.node_repl_history
+
+# TypeScript build info and Next.js env
+*.tsbuildinfo
+next-env.d.ts
+
+# Output CSS directory if generated manually
+output-css/
+
+# Optional: Ignore lock files if using other managers
+# package-lock.json
+# yarn.lock
+# pnpm-lock.yaml
