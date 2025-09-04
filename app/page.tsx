@@ -1,55 +1,34 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
-import PostCard from "@/components/PostCard";
-import { supabase } from "@/lib/supabase";
-
-type Post = {
-  id: string;
-  title: string;
-  excerpt: string;
-  slug: string;
-  created_at: string;
-};
+import { useAuth } from '@/hooks/useAuth';
+import Link from 'next/link';
 
 export default function HomePage() {
-  const [posts, setPosts] = useState<Post[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { user, loading } = useAuth();
 
-  useEffect(() => {
-    async function fetchPosts() {
-      try {
-        const { data, error } = await supabase.from("posts").select("*").order("created_at", { ascending: false });
-
-        if (error) throw error;
-        setPosts(data || []);
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchPosts();
-  }, []);
+  if (loading) return <p className="text-center mt-10">Loading...</p>;
 
   return (
-    <section className="max-w-6xl mx-auto px-6 py-10 space-y-10">
-      <h1 className="text-5xl font-extrabold text-center text-gray-900 dark:text-white">
-        Latest Posts
-      </h1>
-
-      {loading ? (
-        <p className="text-center text-gray-500">Loading posts...</p>
-      ) : posts.length === 0 ? (
-        <p className="text-center text-gray-500">No posts available.</p>
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 px-4">
+      <h1 className="text-4xl font-bold mb-4">Welcome to Chyrp Blog 🚀</h1>
+      <p className="text-gray-600 mb-6 text-center max-w-md">
+        Share your thoughts, read posts, and connect with others.
+      </p>
+      {user ? (
+        <Link
+          href="/dashboard"
+          className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition"
+        >
+          Start Writing
+        </Link>
       ) : (
-        <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-          {posts.map((post) => (
-            <PostCard key={post.id} post={post} />
-          ))}
-        </div>
+        <Link
+          href="/auth/login"
+          className="bg-gray-200 text-gray-800 px-6 py-3 rounded-lg hover:bg-gray-300 transition"
+        >
+          Log In
+        </Link>
       )}
-    </section>
+    </div>
   );
 }

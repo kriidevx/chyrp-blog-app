@@ -1,19 +1,14 @@
-import "@/styles/globals.css";
-
-import { AuthProvider } from "@/app/providers/AuthProvider"; 
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
-import ThemeToggle from "@/components/ThemeToggle";
+import '@/styles/globals.css';
+import { AuthProvider } from '@/context/AuthContext';
+import Navbar from '@/components/layout/Navbar';
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className="scroll-smooth">
-      <body className="bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 min-h-screen flex flex-col">
+    <html lang="en">
+      <body>
         <AuthProvider>
           <Navbar />
-          <main className="container mx-auto px-6 py-8 flex-grow">{children}</main>
-          <Footer />
-          <ThemeToggle />
+          {children}
         </AuthProvider>
       </body>
     </html>

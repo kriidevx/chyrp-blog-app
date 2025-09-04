@@ -1,81 +1,94 @@
--- ===============================
--- PROFILES TABLE
--- ===============================
-create table profiles (
-  id uuid references auth.users on delete cascade primary key,
-  username text,
-  role text check (role in ('user','admin')) default 'user',
-  created_at timestamp default now()
+-- USERS (extend Supabase Auth users)
+create table if not exists users (
+    id uuid primary key references auth.users(id) on delete cascade,
+    username text unique not null,
+    email text not null,
+    avatar_url text,
+    bio text,
+    created_at timestamptz default now(),
+    updated_at timestamptz default now()
 );
 
--- ===============================
--- POSTS TABLE
--- ===============================
-CREATE TABLE posts (
-    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    title text NOT NULL,
-    slug text UNIQUE NOT NULL,
-    content jsonb NOT NULL,
-    content_type text,
-    author_id uuid REFERENCES profiles(id) ON DELETE CASCADE,
-    status text DEFAULT 'draft',  -- values e.g. 'published', 'draft'
-    media_url text,
-    created_at timestamp with time zone DEFAULT now(),
-    updated_at timestamp with time zone
+-- CATEGORIES
+create table if not exists categories (
+    id uuid primary key default gen_random_uuid(),
+    name text not null,
+    slug text unique not null
 );
 
--- ===============================
--- COMMENTS TABLE
--- ===============================
-CREATE TABLE comments (
-    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    post_id uuid REFERENCES posts(id) ON DELETE CASCADE,
-    author_id uuid REFERENCES profiles(id) ON DELETE CASCADE,
-    content text NOT NULL,
-    created_at timestamp with time zone DEFAULT now()
+-- TAGS
+create table if not exists tags (
+    id uuid primary key default gen_random_uuid(),
+    name text not null,
+    slug text unique not null
 );
 
--- ===============================
--- LIKES TABLE
--- ===============================
-CREATE TABLE likes (
-    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    post_id uuid REFERENCES posts(id) ON DELETE CASCADE,
-    user_id uuid REFERENCES profiles(id) ON DELETE CASCADE,
-    created_at timestamp with time zone DEFAULT now()
+-- POSTS
+create table if not exists posts (
+    id uuid primary key default gen_random_uuid(),
+    user_id uuid not null references users(id) on delete cascade,
+    title text not null,
+    slug text unique not null,
+    content text not null,
+    excerpt text,
+    category_id uuid references categories(id) on delete set null,
+    published boolean default false,
+    view_count integer default 0,
+    created_at timestamptz default now(),
+    updated_at timestamptz default now()
 );
 
--- ===============================
--- TAGS TABLE
--- ===============================
-CREATE TABLE tags (
-    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    name text UNIQUE NOT NULL
+-- POST MEDIA
+create table if not exists post_media (
+    id uuid primary key default gen_random_uuid(),
+    post_id uuid not null references posts(id) on delete cascade,
+    media_type text not null,
+    url text not null,
+    alt_text text,
+    "order" integer default 0
 );
 
--- ===============================
--- POST_TAGS TABLE
--- ===============================
-CREATE TABLE post_tags (
-    post_id uuid REFERENCES posts(id) ON DELETE CASCADE,
-    tag_id uuid REFERENCES tags(id) ON DELETE CASCADE,
-    PRIMARY KEY (post_id, tag_id)
+-- POST_TAGS (many-to-many)
+create table if not exists post_tags (
+    post_id uuid references posts(id) on delete cascade,
+    tag_id uuid references tags(id) on delete cascade,
+    primary key (post_id, tag_id)
 );
 
--- ===============================
--- VIEWS TABLE
--- ===============================
-CREATE TABLE views (
-    post_id uuid REFERENCES posts(id) ON DELETE CASCADE,
-    count int4 DEFAULT 0,
-    PRIMARY KEY (post_id)
+-- COMMENTS
+create table if not exists comments (
+    id uuid primary key default gen_random_uuid(),
+    post_id uuid not null references posts(id) on delete cascade,
+    user_id uuid not null references users(id) on delete cascade,
+    content text not null,
+    created_at timestamptz default now(),
+    deleted_at timestamptz
 );
 
--- Enable RLS on all tables as before
-ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
-ALTER TABLE posts ENABLE ROW LEVEL SECURITY;
-ALTER TABLE comments ENABLE ROW LEVEL SECURITY;
-ALTER TABLE likes ENABLE ROW LEVEL SECURITY;
-ALTER TABLE tags ENABLE ROW LEVEL SECURITY;
-ALTER TABLE post_tags ENABLE ROW LEVEL SECURITY;
-ALTER TABLE views ENABLE ROW LEVEL SECURITY;
+-- LIKES
+create table if not exists likes (
+    id uuid primary key default gen_random_uuid(),
+    post_id uuid not null references posts(id) on delete cascade,
+    user_id uuid not null references users(id) on delete cascade,
+    created_at timestamptz default now(),
+    unique (post_id, user_id)
+);
+
+-- REACTIONS
+create table if not exists reactions (
+    id uuid primary key default gen_random_uuid(),
+    post_id uuid not null references posts(id) on delete cascade,
+    user_id uuid not null references users(id) on delete cascade,
+    reaction_type text not null,
+    created_at timestamptz default now(),
+    unique (post_id, user_id, reaction_type)
+);
+
+-- WEBMENTIONS (optional)
+create table if not exists webmentions (
+    id uuid primary key default gen_random_uuid(),
+    source_url text not null,
+    target_post_id uuid not null references posts(id) on delete cascade,
+    content text,
+    created_at timestamptz default now()
+);

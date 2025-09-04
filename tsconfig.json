@@ -1,21 +1,21 @@
 {
   "compilerOptions": {
     "target": "ES2017",
-    "lib": ["dom", "dom.iterable", "esnext"],
+    "lib": ["DOM", "DOM.Iterable", "ESNext"],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": false,
     "noEmit": true,
     "incremental": true,
-    "module": "esnext",
+    "module": "ESNext",
     "esModuleInterop": true,
     "moduleResolution": "node",
     "resolveJsonModule": true,
     "isolatedModules": true,
     "jsx": "preserve",
-    "baseUrl": ".", // <-- Added: base path for @ alias
+    "baseUrl": ".",
     "paths": {
-      "@/*": ["./*"] // <-- Added: map @/* to project root
+      "@/*": ["./*"]
     },
     "plugins": [
       {
