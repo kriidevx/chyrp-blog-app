@@ -17,12 +17,15 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchPosts = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+    async function fetchPosts() {
+      setLoading(true);
+      const { data: { user }} = await supabase.auth.getUser();
 
-      if (!user) return;
+      if (!user) {
+        setPosts([]);
+        setLoading(false);
+        return;
+      }
 
       const { data, error } = await supabase
         .from("posts")
@@ -30,9 +33,13 @@ export default function DashboardPage() {
         .eq("user_id", user.id)
         .order("created_at", { ascending: false });
 
-      if (!error && data) setPosts(data);
+      if (!error && data) {
+        setPosts(data);
+      } else {
+        setPosts([]);
+      }
       setLoading(false);
-    };
+    }
 
     fetchPosts();
   }, []);
@@ -42,36 +49,21 @@ export default function DashboardPage() {
   return (
     <div className="max-w-3xl mx-auto">
       <h1 className="text-2xl font-bold mb-6">My Posts</h1>
-      <Link
-        href="/dashboard/posts/new"
-        className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 inline-block mb-6"
-      >
+      <Link href="/dashboard/posts/new" className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 inline-block mb-6">
         + New Post
       </Link>
-
       {posts.length === 0 ? (
         <p className="text-gray-500">No posts yet. Create one above!</p>
       ) : (
         <ul className="space-y-4">
-          {posts.map((post) => (
-            <li
-              key={post.id}
-              className="p-4 rounded-lg border dark:border-gray-700 bg-white dark:bg-gray-800 shadow"
-            >
+          {posts.map(post => (
+            <li key={post.id} className="p-4 rounded-lg border dark:border-gray-700 bg-white dark:bg-gray-800 shadow">
               <div className="flex justify-between items-center">
                 <div>
                   <h2 className="text-lg font-semibold">{post.title}</h2>
-                  <p className="text-sm text-gray-500">
-                    {new Date(post.created_at).toLocaleDateString()} —{" "}
-                    {post.published ? "Published" : "Draft"}
-                  </p>
+                  <p className="text-sm text-gray-500">{new Date(post.created_at).toLocaleDateString()} — {post.published ? "Published" : "Draft"}</p>
                 </div>
-                <Link
-                  href={`/posts/${post.slug}`}
-                  className="text-blue-600 hover:underline"
-                >
-                  View
-                </Link>
+                <Link href={`/posts/${post.slug}`} className="text-blue-600 hover:underline">View</Link>
               </div>
             </li>
           ))}

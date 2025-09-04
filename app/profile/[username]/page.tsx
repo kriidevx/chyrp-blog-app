@@ -14,39 +14,84 @@ export default function PublicProfilePage() {
   const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    async function fetchProfile() {
-      try {
-        const { data: userData, error: userError } = await supabase
-          .from("users")
-          .select("id, username, bio, avatar_url")
-          .eq("username", username)
-          .single();
+  // useEffect(() => {
+  //   async function fetchProfile() {
+  //     try {
+  //       const { data: userData, error: userError } = await supabase
+  //         .from("users")
+  //         .select("id, username, bio, avatar_url")
+  //         .eq("username", username)
+  //         .single();
 
-        if (userError || !userData) {
-          setUser(null);
-          setPosts([]);
-          return;
-        }
+  //       if (userError || !userData) {
+  //         setUser(null);
+  //         setPosts([]);
+  //         return;
+  //       }
 
-        const { data: postsData } = await supabase
-          .from("posts")
-          .select("id, title, slug, created_at")
-          .eq("user_id", userData.id)
-          .eq("published", true)
-          .order("created_at", { ascending: false });
+  //       const { data: postsData } = await supabase
+  //         .from("posts")
+  //         .select("id, title, slug, created_at")
+  //         .eq("user_id", userData.id)
+  //         .eq("published", true)
+  //         .order("created_at", { ascending: false });
 
-        setUser(userData);
-        setPosts(postsData || []);
-      } catch (err) {
-        console.error(err);
-      } finally {
+  //       setUser(userData);
+  //       setPosts(postsData || []);
+  //     } catch (err) {
+  //       console.error(err);
+  //     } finally {
+  //       setLoading(false);
+  //     }
+  //   }
+
+  //   fetchProfile();
+  // }, [username]);
+
+
+
+
+  
+ useEffect(() => {
+  async function fetchProfile() {
+    setLoading(true);
+
+    // Ensure username is a string if it is an array
+    const normalizedUsername = Array.isArray(username) ? username[0] : username;
+
+    try {
+      if (!normalizedUsername) {
+        setUser(null);
+        setPosts([]);
         setLoading(false);
+        return;
       }
-    }
 
-    fetchProfile();
-  }, [username]);
+      const response = await fetch(`/api/users/profile/${encodeURIComponent(normalizedUsername)}`);
+
+      if (!response.ok) {
+        setUser(null);
+        setPosts([]);
+        setLoading(false);
+        return;
+      }
+
+      const data = await response.json();
+
+      setUser(data.user || null);
+      setPosts(data.posts || []);
+    } catch (error) {
+      console.error(error);
+      setUser(null);
+      setPosts([]);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  fetchProfile();
+}, [username]);
+
 
   if (loading) return <div>Loading...</div>;
   if (!user) return <div>User not found</div>;
