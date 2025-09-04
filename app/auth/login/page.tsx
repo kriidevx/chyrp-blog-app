@@ -1,41 +1,59 @@
-'use client';
+// Login Page: /auth/login/page.tsx
+"use client";
 
-import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
-import { useRouter } from 'next/navigation';
-import { useAuth } from '@/hooks/useAuth';
-import Link from 'next/link';
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/hooks/useAuth";
+import Link from "next/link";
 
 export default function LoginPage() {
   const router = useRouter();
-  const { user, loading } = useAuth();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const { user, profile, loading, refreshProfile } = useAuth();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [loadingForm, setLoadingForm] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Use useEffect for redirect when logged in
+  // Redirect if already logged in and profile is ready
   useEffect(() => {
-    if (!loading && user) {
-      router.replace('/');
+    if (!loading && user && profile?.username) {
+      router.replace(`/profile/${profile.username}`);
     }
-  }, [loading, user, router]);
+  }, [loading, user, profile, router]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoadingForm(true);
     setError(null);
 
-    const { error: authError } = await supabase.auth.signInWithPassword({ email, password });
+    try {
+      // Login using Supabase client directly
+      const { data, error: authError } = await import('@/lib/supabase').then(({ supabase }) =>
+        supabase.auth.signInWithPassword({ email, password })
+      );
 
-    if (authError) {
-      setError(authError.message);
+      if (authError) {
+        setError(authError.message);
+        setLoadingForm(false);
+        return;
+      }
+
+      // Refresh profile in AuthProvider (auto-creates if missing)
+      await refreshProfile();
+
+      // Redirect after profile is ready
+      if (profile?.username) {
+        router.replace(`/profile/${profile.username}`);
+      } else {
+        // fallback if profile not immediately updated
+        router.replace('/');
+      }
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message || "Something went wrong");
+    } finally {
       setLoadingForm(false);
-      return;
     }
-
-    setLoadingForm(false);
-    router.replace('/');
   };
 
   return (
@@ -69,11 +87,11 @@ export default function LoginPage() {
             disabled={loadingForm}
             className="w-full bg-blue-600 text-white py-2 rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50"
           >
-            {loadingForm ? 'Logging in...' : 'Log In'}
+            {loadingForm ? "Logging in..." : "Log In"}
           </button>
         </form>
         <p className="text-sm text-center mt-4">
-          Don&apos;t have an account?{' '}
+          Don&apos;t have an account?{" "}
           <Link href="/auth/signup" className="text-blue-600 hover:underline">
             Sign up
           </Link>

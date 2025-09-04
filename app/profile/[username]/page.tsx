@@ -1,31 +1,55 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { notFound } from "next/navigation";
+import { useParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 
-interface Props {
-  params: { username: string };
-}
+export default function PublicProfilePage() {
+  const params = useParams();
+  const username = params.username;
 
-export default async function PublicProfilePage({ params }: Props) {
-  const { username } = params;
+  const [user, setUser] = useState<any>(null);
+  const [posts, setPosts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const { data: user, error: userError } = await supabase
-    .from("users")
-    .select("id, username, bio, avatar_url")
-    .eq("username", username)
-    .single();
+  useEffect(() => {
+    async function fetchProfile() {
+      try {
+        const { data: userData, error: userError } = await supabase
+          .from("users")
+          .select("id, username, bio, avatar_url")
+          .eq("username", username)
+          .single();
 
-  if (userError || !user) {
-    notFound();
-  }
+        if (userError || !userData) {
+          setUser(null);
+          setPosts([]);
+          return;
+        }
 
-  const { data: posts } = await supabase
-    .from("posts")
-    .select("id, title, slug, created_at")
-    .eq("user_id", user.id)
-    .eq("published", true)
-    .order("created_at", { ascending: false });
+        const { data: postsData } = await supabase
+          .from("posts")
+          .select("id, title, slug, created_at")
+          .eq("user_id", userData.id)
+          .eq("published", true)
+          .order("created_at", { ascending: false });
+
+        setUser(userData);
+        setPosts(postsData || []);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchProfile();
+  }, [username]);
+
+  if (loading) return <div>Loading...</div>;
+  if (!user) return <div>User not found</div>;
 
   return (
     <div className="max-w-3xl mx-auto p-6">
@@ -54,9 +78,9 @@ export default async function PublicProfilePage({ params }: Props) {
       </div>
 
       <h2 className="text-2xl font-semibold mb-4">Posts</h2>
-      {posts && posts.length > 0 ? (
+      {posts.length > 0 ? (
         <ul className="space-y-3">
-          {posts.map((post: any) => (
+          {posts.map((post) => (
             <li
               key={post.id}
               className="p-4 border rounded-lg hover:shadow dark:border-gray-700 bg-white dark:bg-gray-900"
