@@ -1,37 +1,29 @@
-// app/api/auth/session/route.ts
+/**
+ * Auth Session API
+ *
+ * GET → Returns the authenticated user’s profile (from `users` table)
+ * based on the Supabase auth JWT.
+ *
+ * Implementation Guidelines:
+ * - Uses `getUserFromRequest` helper for auth.
+ * - Returns combined user info (id, email, username, bio, avatar).
+ */
 
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { getUserFromRequest } from "@/lib/auth-helpers";
 
-// Your Supabase project credentials (use anon or service role key as appropriate)
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
 export async function GET(request: NextRequest) {
   try {
-    const authHeader = request.headers.get("authorization");
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      return NextResponse.json({ error: "Missing or invalid Authorization header" }, { status: 401 });
-    }
-    const token = authHeader.split(" ")[1];
-
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-      global: {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      },
-    });
-
-    // Get user info from token
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser();
-
-    if (userError || !user) {
+    const user = await getUserFromRequest(request);
+    if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
     // Fetch profile details from your users table
     const { data: profileUser, error: profileError } = await supabase
@@ -41,10 +33,12 @@ export async function GET(request: NextRequest) {
       .single();
 
     if (profileError || !profileUser) {
-      return NextResponse.json({ error: "Failed to get user profile" }, { status: 500 });
+      return NextResponse.json(
+        { error: "Failed to get user profile" },
+        { status: 500 }
+      );
     }
 
-    // Return combined user and profile details
     return NextResponse.json({
       id: user.id,
       email: user.email,
@@ -54,6 +48,9 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error("Error in auth/session API:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 }
+    );
   }
 }

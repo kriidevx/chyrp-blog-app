@@ -1,37 +1,26 @@
-// app/api/posts/new/route.ts
+/**
+ * New Post API
+ *
+ * POST → Creates a new post for the authenticated user.
+ *
+ * Implementation Guidelines:
+ * - Requires auth via `getUserFromRequest`.
+ * - Slug is auto-generated from title.
+ * - Excerpt is auto-generated from content.
+ * - Supports published or draft posts.
+ */
+
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { getUserFromRequest } from "@/lib/auth-helpers";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
-interface Post {
-  id: string;
-  user_id: string;
-  title: string;
-  slug: string;
-  content: string;
-  excerpt?: string;
-  published: boolean;
-  created_at?: string;
-  updated_at?: string;
-}
-
 export async function POST(request: NextRequest) {
   try {
-    const authHeader = request.headers.get("authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-    const token = authHeader.split(" ")[1];
-
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-
-    // Verify user from token
-    const { data: userData, error: userError } = await supabase.auth.getUser(token);
-    const user = userData?.user;
-
-    if (userError || !user) {
+    const user = await getUserFromRequest(request);
+    if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -54,12 +43,15 @@ export async function POST(request: NextRequest) {
 
     const excerpt = content.slice(0, 180);
 
-    // ✅ Insert post and return the created row
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
     const { data: insertedPost, error: insertError } = await supabase
       .from("posts")
-      .insert([{ user_id: user.id, title, slug, content, excerpt, published }])
+      .insert([
+        { user_id: user.id, title, slug, content, excerpt, published },
+      ])
       .select()
-      .single(); // <-- ensures you get back the created row
+      .single();
 
     if (insertError) {
       return NextResponse.json(
@@ -70,7 +62,10 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ post: insertedPost });
   } catch (err) {
-    console.error(err);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    console.error("Error creating post:", err);
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 }
+    );
   }
 }
