@@ -3,11 +3,11 @@ import { supabase } from "@/lib/supabase";
 
 export async function GET(
   request: NextRequest,
-  context: { params: Promise<{ username: string }> }  // params is now a Promise
+  context: { params: Promise<{ username: string }> } // params is now a Promise
 ) {
-  const params = await context.params;  // await params here
+  const params = await context.params; // await params here
   const username = params.username;
-  console.log("API username param:", username);
+  // console.log("API username param:", username);
 
   try {
     const { data: user, error: userError } = await supabase
@@ -16,7 +16,7 @@ export async function GET(
       .ilike("username", username)
       .maybeSingle();
 
-    console.log("User query result:", user, userError);
+    //console.log("User query result:", user, userError);
 
     if (userError || !user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
@@ -29,7 +29,7 @@ export async function GET(
       .eq("published", true)
       .order("created_at", { ascending: false });
 
-    console.log("Posts query result:", posts, postsError);
+    //console.log("Posts query result:", posts, postsError);
 
     if (postsError) {
       return NextResponse.json({ error: postsError.message }, { status: 500 });
@@ -38,6 +38,9 @@ export async function GET(
     return NextResponse.json({ user, posts });
   } catch (error) {
     console.error("Unexpected error:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 }
+    );
   }
 }
