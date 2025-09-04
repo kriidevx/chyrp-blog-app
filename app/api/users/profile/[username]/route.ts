@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 
-export async function GET(request: NextRequest, { params }: { params: { username: string } }) {
+export async function GET(
+  request: NextRequest,
+  context: { params: Promise<{ username: string }> }  // params is now a Promise
+) {
+  const params = await context.params;  // await params here
   const username = params.username;
   console.log("API username param:", username);
 
@@ -20,7 +24,7 @@ export async function GET(request: NextRequest, { params }: { params: { username
 
     const { data: posts, error: postsError } = await supabase
       .from("posts")
-      .select("id, title, slug, created_at")
+      .select("id, title, slug, created_at, published")
       .eq("user_id", user.id)
       .eq("published", true)
       .order("created_at", { ascending: false });

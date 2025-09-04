@@ -1,152 +1,120 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabase";
 import { useParams } from "next/navigation";
-import Image from "next/image";
-import Link from "next/link";
+import { supabase } from "@/lib/supabase";
+
+import ProfileInfo from "@/components/profile/ProfileInfo";
+import ProfilePosts from "@/components/profile/ProfilePosts";
+import ProfileActions from "@/components/profile/ProfileActions";
+
+type User = {
+  username: string;
+  avatar_url?: string | null;
+  bio?: string | null;
+};
+
+type Post = {
+  id: string;
+  title: string;
+  slug: string;
+  published: boolean;
+  created_at: string;
+};
 
 export default function PublicProfilePage() {
   const params = useParams();
-  const username = params.username;
+  const username = Array.isArray(params.username)
+    ? params.username[0]
+    : params.username;
 
-  const [user, setUser] = useState<any>(null);
-  const [posts, setPosts] = useState<any[]>([]);
+  const [user, setUser] = useState<User | null>(null);
+  const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // useEffect(() => {
-  //   async function fetchProfile() {
-  //     try {
-  //       const { data: userData, error: userError } = await supabase
-  //         .from("users")
-  //         .select("id, username, bio, avatar_url")
-  //         .eq("username", username)
-  //         .single();
+  const [loggedInUser, setLoggedInUser] = useState<User | null>(null);
 
-  //       if (userError || !userData) {
-  //         setUser(null);
-  //         setPosts([]);
-  //         return;
-  //       }
+useEffect(() => {
+  async function fetchLoggedInUserProfile() {
+    const {
+      data: { user: authUser },
+      error: authError,
+    } = await supabase.auth.getUser();
 
-  //       const { data: postsData } = await supabase
-  //         .from("posts")
-  //         .select("id, title, slug, created_at")
-  //         .eq("user_id", userData.id)
-  //         .eq("published", true)
-  //         .order("created_at", { ascending: false });
-
-  //       setUser(userData);
-  //       setPosts(postsData || []);
-  //     } catch (err) {
-  //       console.error(err);
-  //     } finally {
-  //       setLoading(false);
-  //     }
-  //   }
-
-  //   fetchProfile();
-  // }, [username]);
-
-
-
-
-  
- useEffect(() => {
-  async function fetchProfile() {
-    setLoading(true);
-
-    // Ensure username is a string if it is an array
-    const normalizedUsername = Array.isArray(username) ? username[0] : username;
-
-    try {
-      if (!normalizedUsername) {
-        setUser(null);
-        setPosts([]);
-        setLoading(false);
-        return;
-      }
-
-      const response = await fetch(`/api/users/profile/${encodeURIComponent(normalizedUsername)}`);
-
-      if (!response.ok) {
-        setUser(null);
-        setPosts([]);
-        setLoading(false);
-        return;
-      }
-
-      const data = await response.json();
-
-      setUser(data.user || null);
-      setPosts(data.posts || []);
-    } catch (error) {
-      console.error(error);
-      setUser(null);
-      setPosts([]);
-    } finally {
-      setLoading(false);
+    if (authError || !authUser) {
+      setLoggedInUser(null);
+      return;
     }
+
+    // Fetch user profile from your 'users' table using authUser.id
+    const { data: profileUser, error: profileError } = await supabase
+      .from("users")
+      .select("username")
+      .eq("id", authUser.id)
+      .single();
+
+    if (profileError || !profileUser) {
+      setLoggedInUser(null);
+      return;
+    }
+
+    setLoggedInUser({ username: profileUser.username });
   }
 
-  fetchProfile();
-}, [username]);
+  fetchLoggedInUserProfile();
+}, []);
 
+
+  // Fetch profile user and posts
+  useEffect(() => {
+    async function fetchProfile() {
+      setLoading(true);
+
+      if (!username) {
+        setUser(null);
+        setPosts([]);
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const response = await fetch(
+          `/api/users/profile/${encodeURIComponent(username)}`
+        );
+
+        if (!response.ok) {
+          setUser(null);
+          setPosts([]);
+          setLoading(false);
+          return;
+        }
+
+        const data = await response.json();
+        setUser(data.user || null);
+        setPosts(data.posts || []);
+      } catch (error) {
+        console.error(error);
+        setUser(null);
+        setPosts([]);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchProfile();
+  }, [username]);
 
   if (loading) return <div>Loading...</div>;
   if (!user) return <div>User not found</div>;
 
+  const isOwner = loggedInUser?.username === username;
+
   return (
     <div className="max-w-3xl mx-auto p-6">
-      <div className="flex items-center space-x-4 mb-6">
-        {user.avatar_url ? (
-          <Image
-            src={user.avatar_url}
-            alt={user.username}
-            width={80}
-            height={80}
-            className="rounded-full"
-          />
-        ) : (
-          <div className="w-20 h-20 rounded-full bg-gray-300 dark:bg-gray-700 flex items-center justify-center text-xl font-bold">
-            {user.username[0].toUpperCase()}
-          </div>
-        )}
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-            @{user.username}
-          </h1>
-          {user.bio && (
-            <p className="text-gray-600 dark:text-gray-300">{user.bio}</p>
-          )}
-        </div>
-      </div>
-
+      <ProfileInfo user={user} />
+      <ProfileActions isOwner={isOwner} />
       <h2 className="text-2xl font-semibold mb-4">Posts</h2>
-      {posts.length > 0 ? (
-        <ul className="space-y-3">
-          {posts.map((post) => (
-            <li
-              key={post.id}
-              className="p-4 border rounded-lg hover:shadow dark:border-gray-700 bg-white dark:bg-gray-900"
-            >
-              <Link
-                href={`/posts/${post.slug}`}
-                className="text-lg font-medium text-blue-600 dark:text-blue-400 hover:underline"
-              >
-                {post.title}
-              </Link>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                {new Date(post.created_at).toLocaleDateString()}
-              </p>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p className="text-gray-600 dark:text-gray-400">
-          This user hasn’t published any posts yet.
-        </p>
-      )}
+      <ProfilePosts posts={posts} />
     </div>
   );
 }

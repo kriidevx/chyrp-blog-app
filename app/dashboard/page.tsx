@@ -16,10 +16,21 @@ export default function DashboardPage() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    async function fetchPosts() {
-      setLoading(true);
-      const { data: { user }} = await supabase.auth.getUser();
+useEffect(() => {
+  async function fetchPosts() {
+    setLoading(true);
+    try {
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+
+      if (userError) {
+        console.error("Error getting user:", userError);
+        setPosts([]);
+        setLoading(false);
+        return;
+      }
 
       if (!user) {
         setPosts([]);
@@ -33,16 +44,23 @@ export default function DashboardPage() {
         .eq("user_id", user.id)
         .order("created_at", { ascending: false });
 
-      if (!error && data) {
-        setPosts(data);
-      } else {
+      if (error) {
+        console.error("Error fetching posts:", error);
         setPosts([]);
+      } else if (data) {
+        setPosts(data);
       }
+    } catch (err) {
+      console.error("Unexpected error:", err);
+      setPosts([]);
+    } finally {
       setLoading(false);
     }
+  }
 
-    fetchPosts();
-  }, []);
+  fetchPosts();
+}, []);
+
 
   if (loading) return <p className="text-center">Loading...</p>;
 
