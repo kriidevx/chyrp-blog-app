@@ -1,178 +1,159 @@
-"use client";
-
-import Link from "next/link";
-import React, { useState, useEffect } from "react";
-import { Search, Menu, X, Home, BookOpen, User, Phone, Settings, Moon, Sun, Zap } from "lucide-react";
-import ThemeToggle from "./ThemeToggle";
-import { useSession, useSupabaseClient } from "@supabase/auth-helpers-react";
+import React, { useState } from 'react';
+import { Search, Bell, User, Menu, X, Home, Compass, Heart, MessageCircle, Bookmark, Settings } from 'lucide-react';
 
 const Navbar = () => {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [isOpen, setIsOpen] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
-  const [darkMode, setDarkMode] = useState(true);
-  const [searchQuery, setSearchQuery] = useState("");
-  const session = useSession();
-  const supabase = useSupabaseClient();
-
-  useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 50);
-    };
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    setMobileMenuOpen(false);
-  };
-
-  const navItems = [
-    { icon: Home, label: "Home", href: "/" },
-    { icon: BookOpen, label: "Posts", href: "/posts" },
-    { icon: User, label: "About", href: "/about" },
-    { icon: Phone, label: "Contact", href: "/contact" },
-    { icon: Settings, label: "Admin", href: "/admin" },
-  ];
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
 
   return (
-    <nav
-      className={`fixed top-0 w-full z-50 transition-all duration-500 ${
-        scrolled
-          ? "bg-slate-900/95 backdrop-blur-xl border-b border-cyan-500/20 shadow-[0_0_50px_rgba(6,182,212,0.1)]"
-          : "bg-transparent"
-      }`}
-    >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
-          {/* Logo */}
-          <div className="flex-shrink-0">
-            <div className="flex items-center space-x-2 group cursor-pointer">
+    <nav className="sticky top-0 z-50 bg-slate-50/80 backdrop-blur-3xl border-b border-cyan-500/20 shadow-[0_8px_32px_rgba(37,99,235,0.1)]">
+      {/* Animated background gradient */}
+      <div className="absolute inset-0 bg-gradient-to-r from-blue-600/5 via-cyan-500/5 to-blue-600/5 bg-[length:200%_100%] animate-pulse"></div>
+      
+      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-16">
+          
+          {/* Logo Section with Glow Effect */}
+          <div className="flex-shrink-0 group">
+            <div className="flex items-center space-x-3">
               <div className="relative">
-                <Zap className="h-8 w-8 text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-pink-400 group-hover:scale-110 transition-transform duration-300" />
-                <div className="absolute inset-0 h-8 w-8 bg-gradient-to-r from-cyan-400 to-pink-400 rounded-full blur-xl opacity-20 group-hover:opacity-40 transition-opacity duration-300"></div>
+                <div className="absolute inset-0 bg-gradient-to-br from-blue-600 to-cyan-500 rounded-xl blur-lg opacity-30 group-hover:opacity-50 transition-all duration-500 transform group-hover:scale-110"></div>
+                <div className="relative w-10 h-10 bg-gradient-to-br from-blue-600 to-cyan-500 rounded-xl flex items-center justify-center shadow-[0_0_30px_rgba(37,99,235,0.3)] group-hover:shadow-[0_0_50px_rgba(6,182,212,0.5)] transition-all duration-500 transform-gpu group-hover:scale-110 group-hover:rotate-3">
+                  <span className="text-slate-50 font-black text-lg">S</span>
+                </div>
               </div>
-              <span className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-pink-400 tracking-tighter">
-                ChyrpBlog
-              </span>
+              <h1 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-cyan-500 tracking-tight group-hover:from-cyan-500 group-hover:to-blue-600 transition-all duration-500">
+                Social
+              </h1>
             </div>
           </div>
 
-          {/* Desktop Navigation */}
-          <div className="hidden md:block">
-            <div className="ml-10 flex items-baseline space-x-8">
-              {navItems.map((item, index) => (
-                <a
-                  key={item.label}
-                  href={item.href}
-                  className="group relative px-3 py-2 text-gray-300 hover:text-cyan-400 transition-all duration-300 ease-out"
-                  style={{ animationDelay: `${index * 0.1}s` }}
-                >
-                  <div className="flex items-center space-x-2">
-                    <item.icon className="h-4 w-4 group-hover:scale-110 transition-transform duration-300" />
-                    <span className="font-medium">{item.label}</span>
-                  </div>
-                  <div className="absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-cyan-400 to-pink-400 group-hover:w-full transition-all duration-300 ease-out"></div>
-                  <div className="absolute inset-0 bg-gradient-to-r from-cyan-400/10 to-pink-400/10 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 -z-10"></div>
-                </a>
-              ))}
-            </div>
-          </div>
-
-          {/* Search Bar */}
-          <div className="hidden md:block flex-1 max-w-xs mx-8">
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Search className="h-4 w-4 text-gray-400" />
+          {/* Advanced Search Bar */}
+          <div className="hidden md:block flex-1 max-w-2xl mx-8">
+            <div className="relative group">
+              <div className={`absolute inset-0 bg-gradient-to-r from-blue-600/20 to-cyan-500/20 rounded-2xl blur-xl transition-all duration-500 ${isSearchFocused ? 'opacity-100 scale-105' : 'opacity-0 scale-100'}`}></div>
+              <div className="relative flex items-center">
+                <Search className={`absolute left-4 w-5 h-5 transition-all duration-300 ${isSearchFocused ? 'text-blue-600 scale-110' : 'text-slate-400'}`} />
+                <input
+                  type="text"
+                  placeholder="Search posts, people, topics..."
+                  onFocus={() => setIsSearchFocused(true)}
+                  onBlur={() => setIsSearchFocused(false)}
+                  className={`w-full pl-12 pr-6 py-3 bg-white/60 backdrop-blur-xl border-2 rounded-2xl text-slate-900 placeholder-slate-500 transition-all duration-500 focus:outline-none transform-gpu ${
+                    isSearchFocused 
+                      ? 'border-blue-600/50 bg-white/80 shadow-[0_0_40px_rgba(37,99,235,0.2)] scale-[1.02]' 
+                      : 'border-slate-200/50 hover:border-cyan-500/30 hover:bg-white/70'
+                  }`}
+                />
               </div>
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="block w-full pl-10 pr-3 py-2 bg-slate-800/50 border border-slate-700/50 rounded-xl text-gray-300 placeholder-gray-400 backdrop-blur-xl focus:outline-none focus:border-cyan-400/50 focus:ring-2 focus:ring-cyan-400/20 transition-all duration-300"
-                placeholder="Search posts..."
-              />
-              <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-cyan-400/5 to-pink-400/5 opacity-0 focus-within:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
             </div>
           </div>
 
-          {/* Theme Toggle & Mobile Menu */}
-          <div className="flex items-center space-x-4">
-            <button
-              onClick={() => setDarkMode(!darkMode)}
-              className="p-2 rounded-xl bg-slate-800/50 border border-slate-700/50 text-gray-300 hover:text-cyan-400 hover:border-cyan-400/50 transition-all duration-300 backdrop-blur-xl group"
-            >
-              {darkMode ? (
-                <Sun className="h-5 w-5 group-hover:rotate-180 transition-transform duration-500" />
-              ) : (
-                <Moon className="h-5 w-5 group-hover:rotate-180 transition-transform duration-500" />
-              )}
-            </button>
-
-            {/* Mobile menu button */}
-            <div className="md:hidden">
+          {/* Desktop Navigation Icons */}
+          <div className="hidden lg:flex items-center space-x-6">
+            {[
+              { icon: Home, active: true },
+              { icon: Compass, active: false },
+              { icon: Heart, active: false },
+              { icon: MessageCircle, active: false },
+              { icon: Bookmark, active: false }
+            ].map((item, index) => (
               <button
-                onClick={() => setIsOpen(!isOpen)}
-                className="p-2 rounded-xl bg-slate-800/50 border border-slate-700/50 text-gray-300 hover:text-cyan-400 hover:border-cyan-400/50 transition-all duration-300 backdrop-blur-xl"
+                key={index}
+                className={`relative p-3 rounded-xl transition-all duration-300 transform-gpu group ${
+                  item.active 
+                    ? 'bg-gradient-to-br from-blue-600 to-cyan-500 text-white shadow-[0_0_25px_rgba(37,99,235,0.4)] scale-110' 
+                    : 'text-slate-600 hover:text-blue-600 hover:bg-blue-50 hover:scale-110'
+                }`}
               >
-                {isOpen ? (
-                  <X className="h-6 w-6 rotate-180 transition-transform duration-300" />
-                ) : (
-                  <Menu className="h-6 w-6 transition-transform duration-300" />
+                <item.icon className="w-6 h-6" />
+                {item.active && (
+                  <div className="absolute inset-0 bg-gradient-to-br from-blue-600 to-cyan-500 rounded-xl blur-lg opacity-30 group-hover:opacity-50 transition-opacity duration-300"></div>
                 )}
               </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Mobile Navigation */}
-      <div
-        className={`md:hidden transition-all duration-300 ease-in-out ${
-          isOpen ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
-        } overflow-hidden`}
-      >
-        <div className="px-2 pt-2 pb-3 space-y-1 bg-slate-900/95 backdrop-blur-xl border-t border-cyan-500/20">
-          {/* Mobile Search */}
-          <div className="px-3 py-2">
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Search className="h-4 w-4 text-gray-400" />
-              </div>
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="block w-full pl-10 pr-3 py-2 bg-slate-800/50 border border-slate-700/50 rounded-xl text-gray-300 placeholder-gray-400 backdrop-blur-xl focus:outline-none focus:border-cyan-400/50 focus:ring-2 focus:ring-cyan-400/20 transition-all duration-300"
-                placeholder="Search posts..."
-              />
-            </div>
+            ))}
           </div>
 
-          {navItems.map((item, index) => (
-            <a
-              key={item.label}
-              href={item.href}
-              className="group flex items-center px-3 py-2 text-base font-medium text-gray-300 hover:text-cyan-400 hover:bg-slate-800/50 rounded-xl transition-all duration-300"
-              style={{ animationDelay: `${index * 0.05}s` }}
-              onClick={() => setIsOpen(false)}
+          {/* Right Section - Notifications & Profile */}
+          <div className="flex items-center space-x-4">
+            {/* Notification Bell with Glow */}
+            <button className="relative p-3 text-slate-600 hover:text-blue-600 rounded-xl hover:bg-gradient-to-br hover:from-blue-50 hover:to-cyan-50 transition-all duration-300 transform-gpu hover:scale-110 group">
+              <Bell className="w-6 h-6" />
+              <span className="absolute -top-1 -right-1 w-5 h-5 bg-gradient-to-br from-blue-600 to-cyan-500 rounded-full flex items-center justify-center text-xs text-white font-bold shadow-[0_0_15px_rgba(37,99,235,0.4)] animate-pulse">
+                3
+              </span>
+              <div className="absolute inset-0 bg-blue-600/20 rounded-xl blur-lg opacity-0 group-hover:opacity-30 transition-opacity duration-300"></div>
+            </button>
+
+            {/* Profile with Advanced Effects */}
+            <div className="relative group">
+              <button className="flex items-center space-x-3 p-2 rounded-2xl hover:bg-gradient-to-br hover:from-blue-50 hover:to-cyan-50 transition-all duration-500 transform-gpu hover:scale-105">
+                <div className="relative">
+                  <div className="absolute inset-0 bg-gradient-to-br from-blue-600 to-cyan-500 rounded-full blur-md opacity-0 group-hover:opacity-40 transition-opacity duration-300"></div>
+                  <div className="relative w-10 h-10 bg-gradient-to-br from-blue-600 to-cyan-500 rounded-full flex items-center justify-center shadow-lg">
+                    <User className="w-5 h-5 text-white" />
+                  </div>
+                </div>
+                <span className="hidden sm:block font-semibold text-slate-900 group-hover:text-blue-600 transition-colors duration-300">
+                  John Doe
+                </span>
+              </button>
+            </div>
+
+            {/* Mobile Menu Button */}
+            <button
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              className="lg:hidden p-2 text-slate-600 hover:text-blue-600 rounded-lg hover:bg-blue-50 transition-all duration-300"
             >
-              <item.icon className="h-5 w-5 mr-3 group-hover:scale-110 transition-transform duration-300" />
-              {item.label}
-            </a>
-          ))}
+              {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+            </button>
+          </div>
         </div>
+
+        {/* Mobile Menu with Glassmorphism */}
+        {isMenuOpen && (
+          <div className="lg:hidden absolute top-full left-0 right-0 mt-2 mx-4 bg-white/80 backdrop-blur-3xl border border-white/20 rounded-2xl shadow-[0_25px_50px_rgba(37,99,235,0.15)] overflow-hidden">
+            <div className="px-6 py-4 space-y-4">
+              {/* Mobile Search */}
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="Search..."
+                  className="w-full pl-10 pr-4 py-3 bg-white/60 backdrop-blur-xl border border-slate-200/50 rounded-xl text-slate-900 placeholder-slate-500 focus:outline-none focus:border-blue-600/50 transition-all duration-300"
+                />
+              </div>
+
+              {/* Mobile Navigation */}
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  { icon: Home, label: 'Home', active: true },
+                  { icon: Compass, label: 'Explore', active: false },
+                  { icon: Heart, label: 'Likes', active: false },
+                  { icon: MessageCircle, label: 'Messages', active: false },
+                  { icon: Bookmark, label: 'Saved', active: false },
+                  { icon: Settings, label: 'Settings', active: false }
+                ].map((item, index) => (
+                  <button
+                    key={index}
+                    className={`flex items-center space-x-3 p-3 rounded-xl transition-all duration-300 ${
+                      item.active 
+                        ? 'bg-gradient-to-br from-blue-600 to-cyan-500 text-white shadow-lg' 
+                        : 'text-slate-600 hover:text-blue-600 hover:bg-blue-50'
+                    }`}
+                  >
+                    <item.icon className="w-5 h-5" />
+                    <span className="font-medium">{item.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Animated Background Elements */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-32 w-80 h-80 bg-gradient-to-br from-purple-600/10 to-pink-600/10 rounded-full blur-3xl animate-pulse"></div>
-        <div
-          className="absolute -bottom-40 -left-32 w-80 h-80 bg-gradient-to-br from-cyan-600/10 to-blue-600/10 rounded-full blur-3xl animate-pulse"
-          style={{ animationDelay: "1s" }}
-        ></div>
-      </div>
+      {/* Animated bottom border */}
+      <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-blue-600/50 to-transparent transform scale-x-0 group-hover:scale-x-100 transition-transform duration-1000"></div>
     </nav>
   );
 };

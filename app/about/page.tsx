@@ -1,209 +1,146 @@
 'use client'
-
 import { useState, useEffect } from 'react'
-import { motion, useScroll, useTransform, useSpring } from 'framer-motion'
-import { useInView } from 'react-intersection-observer'
-import { ArrowRight, Sparkles, Zap, Globe, Users, TrendingUp, Eye, Heart, MessageCircle, Share } from 'lucide-react'
+import { motion } from 'framer-motion'
+import { Code2, Database, Palette, Users, Target, Zap, Heart, Award, TrendingUp } from 'lucide-react'
 import Link from 'next/link'
-import PostCard from '@/components/PostCard'
 
-// Mock data for demonstration
-const featuredPosts = [
-  {
-    id: "1",
-    title: "The Future of Web Development: AI-Powered Coding",
-    excerpt: "Discover how artificial intelligence is revolutionizing the way we build web applications...",
-    author: "Alex Chen",
-    publishedAt: "2024-01-15",
-    readTime: 8,
-    views: 2540,
-    likes: 89,
-    comments: 23,
-    tags: ["AI", "Web Development", "Future Tech"],
-    image: "/api/placeholder/600/400",
-    slug: "ai-powered-coding",
-    created_at: "2024-01-15T00:00:00Z"
-  },
-  {
-    id: "2",
-    title: "Mastering Modern CSS: Grid, Flexbox, and Beyond",
-    excerpt: "Learn advanced CSS techniques that will transform your frontend development skills...",
-    author: "Sarah Johnson",
-    publishedAt: "2024-01-12",
-    readTime: 12,
-    views: 1890,
-    likes: 67,
-    comments: 34,
-    tags: ["CSS", "Frontend", "Design"],
-    image: "/api/placeholder/600/400",
-    slug: "modern-css-grid-flexbox",
-    created_at: "2024-01-12T00:00:00Z"
-  },
-  {
-    id: "3",
-    title: "Building Scalable APIs with Next.js and Supabase",
-    excerpt: "A comprehensive guide to creating robust backend solutions for modern applications...",
-    author: "Mike Rodriguez",
-    publishedAt: "2024-01-10",
-    readTime: 15,
-    views: 3120,
-    likes: 124,
-    comments: 45,
-    tags: ["Next.js", "Supabase", "API"],
-    image: "/api/placeholder/600/400",
-    slug: "scalable-apis-nextjs-supabase",
-    created_at: "2024-01-10T00:00:00Z"
-  }
-]
+export default function AboutPage() {
+  const [counters, setCounters] = useState({
+    users: 0,
+    posts: 0,
+    comments: 0,
+    countries: 0
+  });
+  
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const [activeCard, setActiveCard] = useState<number | null>(null);
 
-const trendingTags = [
-  { name: "React", count: 245, color: "bg-blue-500" },
-  { name: "Next.js", count: 189, color: "bg-black" },
-  { name: "TypeScript", count: 167, color: "bg-blue-600" },
-  { name: "AI", count: 134, color: "bg-purple-500" },
-  { name: "CSS", count: 123, color: "bg-pink-500" },
-  { name: "JavaScript", count: 98, color: "bg-yellow-500" },
-  { name: "Design", count: 87, color: "bg-green-500" },
-  { name: "Performance", count: 76, color: "bg-red-500" },
-]
-
-// Floating particles component
-function FloatingParticles() {
-  return (
-    <div className="absolute inset-0 overflow-hidden pointer-events-none">
-      {[...Array(15)].map((_, i) => (
-        <motion.div
-          key={i}
-          className="absolute w-2 h-2 bg-primary-400 rounded-full opacity-30"
-          animate={{
-            x: [0, 100, 0],
-            y: [0, -100, 0],
-            scale: [1, 1.5, 1],
-            opacity: [0.3, 0.8, 0.3],
-          }}
-          transition={{
-            duration: 10 + Math.random() * 10,
-            repeat: Infinity,
-            ease: "linear",
-          }}
-          style={{
-            left: `${Math.random() * 100}%`,
-            top: `${Math.random() * 100}%`,
-          }}
-        />
-      ))}
-    </div>
-  )
-}
-
-// Typewriter effect component
-function TypewriterText({ texts }: { texts: string[] }) {
-  const [currentTextIndex, setCurrentTextIndex] = useState(0)
-  const [currentText, setCurrentText] = useState('')
-  const [isDeleting, setIsDeleting] = useState(false)
-
+  // Animated counters
   useEffect(() => {
-    const text = texts[currentTextIndex]
-    const timeout = setTimeout(() => {
-      if (!isDeleting) {
-        if (currentText.length < text.length) {
-          setCurrentText(text.slice(0, currentText.length + 1))
-        } else {
-          setTimeout(() => setIsDeleting(true), 2000)
-        }
-      } else {
-        if (currentText.length > 0) {
-          setCurrentText(text.slice(0, currentText.length - 1))
-        } else {
-          setIsDeleting(false)
-          setCurrentTextIndex((prev) => (prev + 1) % texts.length)
-        }
+    const targets = { users: 2847, posts: 15692, comments: 42156, countries: 89 };
+    const duration = 2000;
+    const steps = 60;
+    const interval = duration / steps;
+    
+    let step = 0;
+    const timer = setInterval(() => {
+      step++;
+      const progress = step / steps;
+      const easeOut = 1 - Math.pow(1 - progress, 3);
+      
+      setCounters({
+        users: Math.floor(targets.users * easeOut),
+        posts: Math.floor(targets.posts * easeOut),
+        comments: Math.floor(targets.comments * easeOut),
+        countries: Math.floor(targets.countries * easeOut)
+      });
+      
+      if (step >= steps) {
+        clearInterval(timer);
+        setCounters(targets);
       }
-    }, isDeleting ? 50 : 150)
-
-    return () => clearTimeout(timeout)
-  }, [currentText, isDeleting, currentTextIndex, texts])
-
-  return (
-    <span className="text-gradient font-bold">
-      {currentText}
-      <span className="animate-pulse">|</span>
-    </span>
-  )
-}
-
-// Stats counter component
-function StatsCounter({ end, label }: { end: number; label: string }) {
-  const [count, setCount] = useState(0)
-  const [ref, inView] = useInView({ threshold: 0.3, triggerOnce: true })
+    }, interval);
+    
+    return () => clearInterval(timer);
+  }, []);
 
   useEffect(() => {
-    if (inView) {
-      let start = 0
-      const duration = 2000
-      const increment = end / (duration / 50)
+    const handleMouseMove = (e: MouseEvent) => {
+      setMousePosition({ x: e.clientX, y: e.clientY });
+    };
+    
+    window.addEventListener('mousemove', handleMouseMove);
+    return () => window.removeEventListener('mousemove', handleMouseMove);
+  }, []);
 
-      const timer = setInterval(() => {
-        start += increment
-        if (start >= end) {
-          setCount(end)
-          clearInterval(timer)
-        } else {
-          setCount(Math.floor(start))
-        }
-      }, 50)
-
-      return () => clearInterval(timer)
+  const teamMembers = [
+    {
+      name: "Sarah Chen",
+      role: "CEO & Founder",
+      bio: "Former Google engineer with 10+ years in scalable systems",
+      image: "/api/placeholder/150/150",
+      skills: ["Leadership", "Architecture", "Strategy"]
+    },
+    {
+      name: "Mike Rodriguez",
+      role: "CTO",
+      bio: "Full-stack developer passionate about modern web technologies",
+      image: "/api/placeholder/150/150",
+      skills: ["Next.js", "TypeScript", "DevOps"]
+    },
+    {
+      name: "Emma Johnson",
+      role: "Head of Design",
+      bio: "UX/UI designer creating intuitive and beautiful experiences",
+      image: "/api/placeholder/150/150",
+      skills: ["Design Systems", "User Research", "Prototyping"]
+    },
+    {
+      name: "Alex Kim",
+      role: "Lead Engineer",
+      bio: "Backend specialist focused on performance and reliability",
+      image: "/api/placeholder/150/150",
+      skills: ["Database Design", "API Development", "Security"]
     }
-  }, [inView, end])
+  ];
 
-  return (
-    <motion.div
-      ref={ref}
-      className="text-center"
-      initial={{ opacity: 0, y: 20 }}
-      animate={inView ? { opacity: 1, y: 0 } : {}}
-      transition={{ duration: 0.6 }}
-    >
-      <div className="text-4xl font-bold text-gradient mb-2">
-        {count.toLocaleString()}+
-      </div>
-      <div className="text-gray-600 dark:text-gray-400 font-medium">{label}</div>
-    </motion.div>
-  )
-}
+  const timeline = [
+    { year: "2022", title: "Founded", desc: "Chyrp Blog was born from a vision to modernize blogging" },
+    { year: "2023", title: "Beta Launch", desc: "Released private beta to 100 selected creators" },
+    { year: "2023", title: "Public Launch", desc: "Opened platform to the public with core features" },
+    { year: "2024", title: "Growth", desc: "Reached 2,000+ active creators and 15,000+ posts" },
+    { year: "2024", title: "Today", desc: "Continuously innovating with AI-powered features" }
+  ];
 
-export default function HomePage() {
-  const { scrollY } = useScroll()
-  const y1 = useTransform(scrollY, [0, 1000], [0, -200])
-  const y2 = useTransform(scrollY, [0, 1000], [0, -400])
-  const opacity = useTransform(scrollY, [0, 500], [1, 0])
-  const scale = useTransform(scrollY, [0, 500], [1, 0.8])
+  const techStack = [
+    { name: "Next.js", icon: Code2, desc: "React framework for production", color: "from-blue-600 to-blue-500" },
+    { name: "Supabase", icon: Database, desc: "Open source Firebase alternative", color: "from-cyan-500 to-cyan-400" },
+    { name: "Tailwind", icon: Palette, desc: "Utility-first CSS framework", color: "from-blue-600 to-cyan-500" }
+  ];
 
-  const springConfig = { stiffness: 100, damping: 30, restDelta: 0.001 }
-  const y1Spring = useSpring(y1, springConfig)
-  const y2Spring = useSpring(y2, springConfig)
+  const values = [
+    { 
+      icon: Target, 
+      title: "Purpose-Driven", 
+      desc: "We believe every story matters and deserves to be heard",
+      color: "from-blue-600 to-blue-500"
+    },
+    { 
+      icon: Zap, 
+      title: "Innovation", 
+      desc: "Constantly pushing the boundaries of what's possible in blogging",
+      color: "from-cyan-500 to-cyan-400"
+    },
+    { 
+      icon: Heart, 
+      title: "Community First", 
+      desc: "Building tools that bring creators and readers together",
+      color: "from-blue-600 to-cyan-500"
+    },
+    { 
+      icon: Award, 
+      title: "Excellence", 
+      desc: "Committed to delivering the highest quality experience",
+      color: "from-cyan-500 to-blue-600"
+    }
+  ];
 
   return (
     <div className="min-h-screen">
       {/* Hero Section with Parallax */}
       <section className="relative h-screen flex items-center justify-center overflow-hidden">
-        <FloatingParticles />
-        
         {/* Background Elements */}
         <motion.div
-          style={{ y: y2Spring }}
-          className="absolute inset-0 bg-gradient-to-br from-primary-600/20 via-purple-600/20 to-pink-600/20 rounded-full blur-3xl scale-150"
-        />
-        
-        <motion.div
-          style={{ y: y1Spring }}
-          className="absolute inset-0 bg-gradient-mesh opacity-50"
+          className="absolute inset-0 bg-gradient-to-br from-blue-600/20 via-cyan-600/20 to-blue-600/20 rounded-full blur-3xl scale-150"
+          animate={{ y: [-20, 20, -20], opacity: [0.3, 0.5, 0.3] }}
+          transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
         />
 
         {/* Main Hero Content */}
         <motion.div
-          style={{ opacity, scale }}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8 }}
           className="relative z-10 text-center max-w-6xl mx-auto px-6"
         >
           <motion.div
@@ -213,17 +150,19 @@ export default function HomePage() {
             className="mb-8"
           >
             <div className="inline-flex items-center gap-2 glass px-4 py-2 rounded-full mb-8">
-              <Sparkles className="w-4 h-4 text-primary-400 animate-pulse" />
-              <span className="text-sm font-medium">Welcome to the Future of Blogging</span>
+              <span className="w-4 h-4 bg-cyan-500 rounded-full animate-pulse" />
+              <span className="text-sm font-medium">Our Story</span>
             </div>
             
             <h1 className="text-6xl md:text-8xl font-black leading-tight mb-6">
               Create. Share.{' '}
               <br />
-              <TypewriterText texts={['Inspire.', 'Connect.', 'Innovate.', 'Transform.']} />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-cyan-500">
+                Inspire.
+              </span>
             </h1>
             
-            <p className="text-xl md:text-2xl text-gray-600 dark:text-gray-300 mb-12 max-w-3xl mx-auto leading-relaxed">
+            <p className="text-xl md:text-2xl text-slate-900/80 mb-12 max-w-3xl mx-auto leading-relaxed">
               Experience the next generation of blogging with AI-powered features, 
               real-time collaboration, and stunning visual effects that bring your stories to life.
             </p>
@@ -237,9 +176,9 @@ export default function HomePage() {
                 >
                   <span className="relative z-10 flex items-center gap-2">
                     Start Writing
-                    <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                    <TrendingUp className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                   </span>
-                  <div className="absolute inset-0 bg-gradient-to-r from-accent-purple to-accent-pink opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-cyan-500 opacity-0 group-hover:opacity-100 transition-opacity" />
                 </motion.button>
               </Link>
               
@@ -250,8 +189,8 @@ export default function HomePage() {
                   whileTap={{ scale: 0.95 }}
                 >
                   <span className="flex items-center gap-2">
-                    Explore Posts
-                    <Globe className="w-5 h-5 group-hover:rotate-12 transition-transform" />
+                    Learn More
+                    <Award className="w-5 h-5 group-hover:rotate-12 transition-transform" />
                   </span>
                 </motion.button>
               </Link>
@@ -279,98 +218,117 @@ export default function HomePage() {
             transition={{ duration: 0.8 }}
             viewport={{ once: true }}
           >
-            <StatsCounter end={10000} label="Articles Published" />
-            <StatsCounter end={50000} label="Active Readers" />
-            <StatsCounter end={500} label="Writers" />
-            <StatsCounter end={25} label="Countries" />
+            {[
+              { label: 'Active Creators', value: counters.users, suffix: '+', icon: Users },
+              { label: 'Posts Published', value: counters.posts, suffix: '+', icon: TrendingUp },
+              { label: 'Comments', value: counters.comments, suffix: '+', icon: Heart },
+              { label: 'Countries', value: counters.countries, suffix: '', icon: Award }
+            ].map((stat, index) => (
+              <motion.div
+                key={index}
+                className="text-center bg-white/10 backdrop-blur-3xl border border-white/20 rounded-2xl p-8 transform-gpu hover:scale-110 transition-all duration-500 hover:shadow-[0_35px_60px_-15px_rgba(37,99,235,0.3)]"
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: index * 0.1 }}
+                viewport={{ once: true }}
+              >
+                <stat.icon className="w-12 h-12 text-cyan-500 mx-auto mb-4 animate-float" />
+                <div className="text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-cyan-500 mb-2">
+                  {stat.value.toLocaleString()}{stat.suffix}
+                </div>
+                <div className="text-slate-900/70 font-medium">{stat.label}</div>
+              </motion.div>
+            ))}
           </motion.div>
         </div>
       </section>
-
-      {/* Featured Posts Section */}
-      <section className="py-20 relative">
-        <div className="max-w-7xl mx-auto px-6">
-          <motion.div
-            initial={{ opacity: 0, y: 50 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-            viewport={{ once: true }}
-            className="text-center mb-16"
-          >
-            <h2 className="text-4xl md:text-6xl font-black mb-6">
-              Featured <span className="text-gradient">Stories</span>
-            </h2>
-            <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
-              Discover the most engaging and insightful articles from our community
-            </p>
-          </motion.div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {featuredPosts.map((post, index) => (
-              <motion.div
-                key={post.id}
-                initial={{ opacity: 0, y: 50 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: index * 0.1 }}
-                viewport={{ once: true }}
+      
+      {/* Team Members Section */}
+      <section className="py-20 px-6">
+        <div className="max-w-6xl mx-auto">
+          <h2 className="text-4xl md:text-5xl font-black text-center mb-16">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-cyan-500">
+              Meet Our Team
+            </span>
+          </h2>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            {teamMembers.map((member, index) => (
+              <div
+                key={index}
+                className="group relative h-80 perspective-1000"
+                onMouseEnter={() => setActiveCard(index)}
+                onMouseLeave={() => setActiveCard(null)}
               >
-                <PostCard post={post} />
-              </motion.div>
+                <div className={`relative w-full h-full transition-transform duration-700 transform-style-preserve-3d ${
+                  activeCard === index ? 'rotate-y-180' : ''
+                }`}>
+                  {/* Front of card */}
+                  <div className="absolute inset-0 w-full h-full backface-hidden bg-white/10 backdrop-blur-3xl border border-white/20 rounded-2xl p-6 flex flex-col items-center justify-center transform-gpu hover:shadow-[0_35px_60px_-15px_rgba(37,99,235,0.3)]">
+                    <div className="w-24 h-24 rounded-full bg-gradient-to-r from-blue-600 to-cyan-500 mb-4 flex items-center justify-center text-white text-2xl font-bold">
+                      {member.name.split(' ').map(n => n[0]).join('')}
+                    </div>
+                    <h3 className="text-xl font-bold text-slate-900 mb-2">{member.name}</h3>
+                    <p className="text-cyan-600 font-semibold text-center">{member.role}</p>
+                  </div>
+
+                  {/* Back of card */}
+                  <div className="absolute inset-0 w-full h-full backface-hidden bg-gradient-to-br from-blue-600/20 to-cyan-500/20 backdrop-blur-3xl border border-white/20 rounded-2xl p-6 transform rotate-y-180">
+                    <p className="text-slate-900 mb-4 text-sm leading-relaxed">{member.bio}</p>
+                    <div className="space-y-2">
+                      {member.skills.map((skill, skillIndex) => (
+                        <div
+                          key={skillIndex}
+                          className="inline-block px-3 py-1 bg-white/20 backdrop-blur-xl rounded-full text-xs font-medium text-slate-900 mr-2"
+                        >
+                          {skill}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Trending Tags Cloud */}
-      <section className="py-20 relative">
-        <div className="max-w-7xl mx-auto px-6">
-          <motion.div
-            initial={{ opacity: 0, y: 50 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-            viewport={{ once: true }}
-            className="text-center mb-16"
-          >
-            <h2 className="text-4xl md:text-6xl font-black mb-6">
-              Trending <span className="text-gradient">Topics</span>
-            </h2>
-            <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
-              Explore the hottest topics in our community
-            </p>
-          </motion.div>
+      <style jsx>{`
+        .perspective-1000 {
+          perspective: 1000px;
+        }
+        
+        .transform-style-preserve-3d {
+          transform-style: preserve-3d;
+        }
+        
+        .backface-hidden {
+          backface-visibility: hidden;
+        }
+        
+        .rotate-y-180 {
+          transform: rotateY(180deg);
+        }
 
-          <motion.div
-            className="flex flex-wrap justify-center gap-4"
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            transition={{ duration: 0.8, staggerChildren: 0.1 }}
-            viewport={{ once: true }}
-          >
-            {trendingTags.map((tag, index) => (
-              <motion.div
-                key={tag.name}
-                className="group"
-                initial={{ opacity: 0, scale: 0.8 }}
-                whileInView={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.5, delay: index * 0.1 }}
-                viewport={{ once: true }}
-              >
-                <Link href={`/tag/${tag.name.toLowerCase()}`}>
-                  <div className="glass px-6 py-3 rounded-full hover:scale-110 transition-all duration-300 cursor-pointer group-hover:shadow-glow-sm">
-                    <div className="flex items-center gap-3">
-                      <div className={`w-3 h-3 rounded-full ${tag.color} animate-pulse`} />
-                      <span className="font-semibold text-white">{tag.name}</span>
-                      <span className="text-sm text-gray-400 bg-white/10 px-2 py-1 rounded-full">
-                        {tag.count}
-                      </span>
-                    </div>
-                  </div>
-                </Link>
-              </motion.div>
-            ))}
-          </motion.div>
-        </div>
-      </section>
+        @keyframes float {
+          0%, 100% { transform: translateY(0px) rotate(0deg); }
+          33% { transform: translateY(-10px) rotate(1deg); }
+          66% { transform: translateY(5px) rotate(-1deg); }
+        }
+        
+        @keyframes gradient {
+          0%, 100% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+        }
+        
+        .animate-gradient {
+          animation: gradient 3s ease infinite;
+        }
+        
+        .animate-float {
+          animation: float 6s ease-in-out infinite;
+        }
+      `}</style>
 
       {/* Features Section */}
       <section className="py-20 relative">
@@ -451,5 +409,14 @@ export default function HomePage() {
         </div>
       </section>
     </div>
-  )
+  );
 }
+
+
+
+
+
+
+
+
+

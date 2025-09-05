@@ -1,243 +1,128 @@
-'use client';
-import React, { useState, useRef, useEffect } from 'react';
-import { Mic, Square, Play, Pause, Download, Trash2, BarChart3 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Mic, MicOff, Play, Pause, Square, Send } from 'lucide-react';
 
-interface AudioRecorderProps {
-  maxDuration?: number; // in seconds
-  allowDownload?: boolean;
-}
-
-const AudioRecorder: React.FC<AudioRecorderProps> = ({
-  maxDuration = 300, // 5 minutes
-  allowDownload = true,
-}) => {
+const AudioRecorder = () => {
   const [isRecording, setIsRecording] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [duration, setDuration] = useState(0);
-  const [currentTime, setCurrentTime] = useState(0);
-  const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
-  const [audioURL, setAudioURL] = useState<string>('');
-
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const streamRef = useRef<MediaStream | null>(null);
-  const chunksRef = useRef<Blob[]>([]);
+  const [hasRecording, setHasRecording] = useState(false);
+  const [waveform, setWaveform] = useState<number[]>([]);
 
   useEffect(() => {
-    return () => {
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach(track => track.stop());
-      }
-      if (audioURL) {
-        URL.revokeObjectURL(audioURL);
-      }
-    };
-  }, [audioURL]);
-
-  const startRecording = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      streamRef.current = stream;
-      mediaRecorderRef.current = new MediaRecorder(stream);
-      chunksRef.current = [];
-
-      mediaRecorderRef.current.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          chunksRef.current.push(event.data);
-        }
-      };
-
-      mediaRecorderRef.current.onstop = () => {
-        const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
-        const url = URL.createObjectURL(blob);
-        setAudioBlob(blob);
-        setAudioURL(url);
-        stream.getTracks().forEach(track => track.stop());
-      };
-
-      mediaRecorderRef.current.start();
-      setIsRecording(true);
-      setDuration(0);
-
-      // Duration timer
-      const timer = setInterval(() => {
-        setDuration(prev => {
-          const newDuration = prev + 1;
-          if (newDuration >= maxDuration) {
-            stopRecording();
-            clearInterval(timer);
-          }
-          return newDuration;
-        });
-      }, 1000);
-    } catch (error) {
-      console.error('Error starting recording:', error);
-      alert('Unable to access microphone. Please check your permissions.');
+    let interval: NodeJS.Timeout;
+    if (isRecording) {
+      interval = setInterval(() => {
+        setDuration(prev => prev + 1);
+        // Simulate waveform data
+        setWaveform(prev => [...prev.slice(-19), Math.random() * 100]);
+      }, 100);
     }
+    return () => clearInterval(interval);
+  }, [isRecording]);
+
+  const startRecording = () => {
+    setIsRecording(true);
+    setDuration(0);
+    setWaveform([]);
+    setHasRecording(false);
   };
 
   const stopRecording = () => {
-    if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop();
-      setIsRecording(false);
-    }
+    setIsRecording(false);
+    setHasRecording(true);
   };
 
-  const playAudio = () => {
-    if (audioRef.current) {
-      audioRef.current.volume = 1;
-      audioRef.current.play();
-      setIsPlaying(true);
-    }
+  const togglePlayback = () => {
+    setIsPlaying(!isPlaying);
   };
 
-  const pauseAudio = () => {
-    if (audioRef.current) {
-      audioRef.current.pause();
-      setIsPlaying(false);
-    }
-  };
-
-  const deleteRecording = () => {
-    if (audioURL) {
-      URL.revokeObjectURL(audioURL);
-    }
-    setAudioBlob(null);
-    setAudioURL('');
+  const sendRecording = () => {
+    console.log('Sending audio recording...');
+    setHasRecording(false);
     setDuration(0);
-    setCurrentTime(0);
-    setIsPlaying(false);
-  };
-
-  const downloadRecording = () => {
-    if (audioBlob) {
-      const url = URL.createObjectURL(audioBlob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `voice-note-${Date.now()}.webm`;
-      a.click();
-      URL.revokeObjectURL(url);
-    }
+    setWaveform([]);
   };
 
   const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
+    const mins = Math.floor(seconds / 600);
+    const secs = Math.floor((seconds % 600) / 10);
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
   return (
-    <div className="relative p-4 bg-slate-900/50 backdrop-blur-xl border border-slate-700/50 rounded-xl">
-      {/* Hidden audio element */}
-      {audioURL && (
-        <audio
-          ref={audioRef}
-          src={audioURL}
-          onTimeUpdate={(e) => setCurrentTime(e.currentTarget.currentTime)}
-          onEnded={() => setIsPlaying(false)}
-          onLoadedMetadata={(e) => setDuration(e.currentTarget.duration)}
-        />
-      )}
-
-      {/* Recording Interface */}
-      <div className="space-y-4">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <BarChart3 className="h-5 w-5 text-cyan-400" />
-            <h3 className="text-lg font-semibold text-white">Voice Note</h3>
-          </div>
-          {/* Timer */}
-          <div className={`px-3 py-1 rounded-full text-sm font-mono ${
+    <div className="bg-white/10 backdrop-blur-3xl border border-white/20 rounded-2xl p-4 shadow-lg">
+      <div className="flex items-center space-x-4">
+        {/* Record Button */}
+        <button
+          onClick={isRecording ? stopRecording : startRecording}
+          className={`w-12 h-12 rounded-full flex items-center justify-center transition-all duration-300 ${
             isRecording 
-              ? 'bg-red-500/20 text-red-400 border border-red-500/50' 
-              : 'bg-slate-800/50 text-gray-400 border border-slate-700/50'
-          }`}>
-            {formatTime(Math.floor(duration))}
-            {isRecording && <span className="ml-1 animate-pulse">●</span>}
-          </div>
-        </div>
+              ? 'bg-red-500 hover:bg-red-600 shadow-lg shadow-red-500/25 animate-pulse' 
+              : 'bg-gradient-to-r from-blue-600 to-cyan-500 hover:scale-110 shadow-lg hover:shadow-blue-500/25'
+          }`}
+        >
+          {isRecording ? (
+            <Square className="w-5 h-5 text-white" />
+          ) : (
+            <Mic className="w-5 h-5 text-white" />
+          )}
+        </button>
 
-        {/* Controls */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            {/* Record/Stop Button */}
-            {!audioBlob ? (
-              <button
-                onClick={isRecording ? stopRecording : startRecording}
-                className={`p-3 rounded-xl transition-all duration-300 ${
-                  isRecording
-                    ? 'bg-red-500 hover:bg-red-600 text-white shadow-lg shadow-red-500/25'
-                    : 'bg-gradient-to-r from-cyan-500 to-pink-500 hover:from-cyan-600 hover:to-pink-600 text-white shadow-lg hover:shadow-cyan-500/25'
-                }`}
-              >
-                {isRecording ? (
-                  <Square className="h-5 w-5" />
-                ) : (
-                  <Mic className="h-5 w-5" />
-                )}
-              </button>
-            ) : (
-              // Play/Pause Button
-              <button
-                onClick={isPlaying ? pauseAudio : playAudio}
-                className="p-3 bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white rounded-xl transition-all duration-300 shadow-lg hover:shadow-green-500/25"
-              >
-                {isPlaying ? (
-                  <Pause className="h-5 w-5" />
-                ) : (
-                  <Play className="h-5 w-5" />
-                )}
-              </button>
-            )}
-          </div>
-
-          {/* Action Buttons */}
-          {audioBlob && (
-            <div className="flex items-center space-x-2">
-              {allowDownload && (
-                <button
-                  onClick={downloadRecording}
-                  className="p-2 bg-slate-800/50 border border-slate-700/50 text-gray-400 hover:text-cyan-400 hover:border-cyan-400/50 rounded-lg transition-all duration-300"
-                  title="Download recording"
-                >
-                  <Download className="h-4 w-4" />
-                </button>
-              )}
-              <button
-                onClick={deleteRecording}
-                className="p-2 bg-slate-800/50 border border-slate-700/50 text-gray-400 hover:text-red-400 hover:border-red-400/50 rounded-lg transition-all duration-300"
-                title="Delete recording"
-              >
-                <Trash2 className="h-4 w-4" />
-              </button>
+        {/* Waveform Visualization */}
+        <div className="flex-1 flex items-center space-x-1 h-12">
+          {(isRecording || hasRecording) ? (
+            <div className="flex items-end space-x-1 h-8">
+              {waveform.map((height, i) => (
+                <div
+                  key={i}
+                  className="bg-gradient-to-t from-cyan-500 to-blue-600 w-1 rounded-full transition-all duration-100"
+                  style={{ height: `${Math.max(height * 0.3, 4)}px` }}
+                />
+              ))}
             </div>
+          ) : (
+            <div className="text-slate-500 text-sm">Tap to record voice note</div>
           )}
         </div>
 
-        {/* Progress Bar (when playing) */}
-        {audioBlob && isPlaying && (
-          <div className="space-y-2">
-            <div className="w-full bg-slate-700 rounded-full h-1">
-              <div 
-                className="bg-gradient-to-r from-green-500 to-blue-500 h-1 rounded-full transition-all duration-300"
-                style={{ width: `${(currentTime / duration) * 100}%` }}
-              />
-            </div>
-            <div className="flex justify-between text-xs text-gray-400">
-              <span>{formatTime(Math.floor(currentTime))}</span>
-              <span>{formatTime(Math.floor(duration))}</span>
-            </div>
+        {/* Duration */}
+        {(isRecording || hasRecording) && (
+          <div className="text-sm text-slate-700 font-mono min-w-[3rem]">
+            {formatTime(duration)}
           </div>
         )}
 
-        {/* Instructions */}
-        {!audioBlob && !isRecording && (
-          <p className="text-sm text-gray-400 text-center">
-            Click the microphone to start recording your voice note
-          </p>
+        {/* Playback Controls */}
+        {hasRecording && !isRecording && (
+          <div className="flex space-x-2">
+            <button
+              onClick={togglePlayback}
+              className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center hover:bg-slate-300 transition-colors duration-200"
+            >
+              {isPlaying ? (
+                <Pause className="w-4 h-4 text-slate-700" />
+              ) : (
+                <Play className="w-4 h-4 text-slate-700" />
+              )}
+            </button>
+            
+            <button
+              onClick={sendRecording}
+              className="w-10 h-10 rounded-full bg-gradient-to-r from-blue-600 to-cyan-500 flex items-center justify-center hover:scale-110 transition-all duration-200 shadow-lg hover:shadow-blue-500/25"
+            >
+              <Send className="w-4 h-4 text-white" />
+            </button>
+          </div>
         )}
       </div>
+
+      {/* Recording Indicator */}
+      {isRecording && (
+        <div className="flex items-center justify-center mt-2 text-red-500 text-xs">
+          <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse mr-2" />
+          Recording...
+        </div>
+      )}
     </div>
   );
 };
