@@ -7,37 +7,39 @@
 //   • Useful for moderation and user control
 
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { createClient, SupabaseClient } from "@supabase/supabase-js";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
+const supabaseAdmin: SupabaseClient = createClient(
+  SUPABASE_URL,
+  SUPABASE_SERVICE_ROLE_KEY
+);
+
 export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }
-) {
+): Promise<NextResponse> {
   try {
+    // Check for authorization header
     const authHeader = request.headers.get("authorization");
     if (!authHeader?.startsWith("Bearer ")) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
     const token = authHeader.split(" ")[1];
 
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-
     // Verify user
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser(token);
+    const { data: userData, error: userError } = await supabaseAdmin.auth.getUser(token);
+    const user = userData?.user;
     if (userError || !user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const commentId = params.id;
 
-    // Fetch the comment and its post
-    const { data: comment, error: commentError } = await supabase
+    // Fetch comment
+    const { data: comment, error: commentError } = await supabaseAdmin
       .from("comments")
       .select("id, user_id, post_id")
       .eq("id", commentId)
@@ -47,8 +49,8 @@ export async function DELETE(
       return NextResponse.json({ error: "Comment not found" }, { status: 404 });
     }
 
-    // Fetch the post to check post author
-    const { data: post, error: postError } = await supabase
+    // Fetch post to check author
+    const { data: post, error: postError } = await supabaseAdmin
       .from("posts")
       .select("user_id")
       .eq("id", comment.post_id)
@@ -58,7 +60,7 @@ export async function DELETE(
       return NextResponse.json({ error: "Post not found" }, { status: 404 });
     }
 
-    // Permission check: must be comment author OR post author
+    // Permission check
     if (comment.user_id !== user.id && post.user_id !== user.id) {
       return NextResponse.json(
         { error: "You are not allowed to delete this comment" },
@@ -66,8 +68,8 @@ export async function DELETE(
       );
     }
 
-    // Delete the comment
-    const { error: deleteError } = await supabase
+    // Delete comment
+    const { error: deleteError } = await supabaseAdmin
       .from("comments")
       .delete()
       .eq("id", commentId);
