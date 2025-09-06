@@ -11,7 +11,7 @@ const feathers = [
   { id: 'link', name: 'Link', icon: ExternalLink, description: 'Link out to another website' },
   { id: 'video', name: 'Video', icon: Video, description: 'Upload and display a video file' },
   { id: 'audio', name: 'Audio', icon: Music, description: 'Upload and play an audio file' },
-  { id: 'uploader', name: 'Uploader', icon: Upload, description: 'Upload and manage multiple files' },
+ // { id: 'uploader', name: 'Uploader', icon: Upload, description: 'Upload and manage multiple files' },
 ];
 
 interface FeathersSelectorProps {

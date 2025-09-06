@@ -1,79 +1,59 @@
-/**
- * API Route: /api/posts
- *
- * Purpose:
- * - Fetch a paginated list of published posts for the main feed.
- *
- * Methods:
- * - GET → Returns posts with optional filtering by category, tag, and search query.
- *
- * Query Parameters:
- * - category: string (slug of category to filter by)
- * - tag: string (slug of tag to filter by)
- * - q: string (search query for post title)
- * - page: number (default: 1)
- * - limit: number (default: 10)
- *
- * Returns:
- * - JSON object containing posts[], page, limit, hasMore.
- *
- * Implementation Guidelines:
- * - Always fetch only published posts (`published = true`).
- * - Joins users, categories, and tags for display metadata.
- * - Uses pagination with `.range(offset, offset + limit - 1)`.
- * - Extendable for trending feed by adding order("view_count", { ascending: false }).
- */
-
+// app/api/posts/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
-export async function GET(request: NextRequest) {
+export async function GET(req: NextRequest) {
   try {
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-
-    const { searchParams } = new URL(request.url);
-    const category = searchParams.get("category");
-    const tag = searchParams.get("tag");
-    const q = searchParams.get("q");
-    const page = parseInt(searchParams.get("page") || "1", 10);
-    const limit = parseInt(searchParams.get("limit") || "10", 10);
-    const offset = (page - 1) * limit;
-
-    let query = supabase
+    // Fetch posts with user, category, tags, likes & comments count
+    const { data: posts, error } = await supabase
       .from("posts")
-      .select(
-        `
-        id, title, slug, excerpt, created_at, view_count,
-        users(id, username, avatar_url),
-        categories(name, slug),
-        post_tags(tags(name, slug))
-      `
-      )
-      .eq("published", true)
-      .order("created_at", { ascending: false })
-      .range(offset, offset + limit - 1);
+      .select(`
+        id,
+        title,
+        excerpt,
+        slug,
+        view_count,
+        feather_type,
+        created_at,
+        user_id,
+        category_id,
+        users!inner(username),
+        categories!left(name),
+        tags:post_tags(
+          tag:tags(name)
+        ),
+        likes:likes(id),
+        comments:comments(id)
+      `)
+      .order("created_at", { ascending: false });
 
-    if (category) query = query.eq("categories.slug", category);
-    if (tag) query = query.eq("post_tags.tags.slug", tag);
-    if (q) query = query.ilike("title", `%${q}%`);
+    if (error) throw error;
 
-    const { data: posts, error } = await query;
+    // Format the data for FeedPage
+    const formattedPosts = posts?.map((post: any) => ({
+      id: post.id,
+      title: post.title,
+      excerpt: post.excerpt,
+      slug: post.slug,
+      view_count: post.view_count || 0,
+      feather_type: post.feather_type || "default",
+      created_at: post.created_at,
+      author: post.users?.username,
+      category: post.categories?.name,
+      tags: post.tags?.map((t: any) => t.tag.name) || [],
+      like_count: post.likes?.length || 0,
+      comment_count: post.comments?.length || 0,
+      image: null, // can later fetch from post_media if needed
+    }));
 
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
-
-    return NextResponse.json({
-      posts,
-      page,
-      limit,
-      hasMore: posts.length === limit,
-    });
-  } catch (err) {
-    console.error("Error in GET /api/posts:", err);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    return NextResponse.json(formattedPosts);
+  } catch (err: any) {
+    console.error("Supabase fetch error:", err);
+    return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }

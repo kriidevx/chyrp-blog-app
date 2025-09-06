@@ -1,7 +1,7 @@
 'use client';
 import React, { useRef, useState, useEffect } from 'react';
 import { ImageIcon, X } from 'lucide-react';
-import Photo from '@/components/newPost/mediaView/PhotoViewer';
+import Photo from '@/components/FeatherView/PhotoViewer';
 
 interface PhotoUploaderProps {
   value?: File | null;

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useMemo } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 import Link from "next/link";
 import { createClient } from "@supabase/supabase-js";
@@ -73,16 +73,19 @@ interface PostPageState {
     comment: boolean;
   };
 }
-
+type Props = {
+  postId: number;
+  postTitle: string;
+};
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-export default function PostPage() {
+export default function PostPage({ postId, postTitle }: Props) {
   const params = useParams();
   const slug = Array.isArray(params.slug) ? params.slug[0] : params.slug;
-
+  const router = useRouter();
   const [state, setState] = useState<PostPageState>({
     post: null,
     currentUser: null,
@@ -106,20 +109,22 @@ export default function PostPage() {
 
   const fetchPostData = useCallback(async () => {
     if (!slug) return;
-    
-    setState(prev => ({ ...prev, loading: true }));
-    
+
+    setState((prev) => ({ ...prev, loading: true }));
+
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       const token = session?.access_token;
 
       const res = await fetch(`/api/posts/${slug}`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
-      
+
       if (!res.ok) {
         console.error(`HTTP ${res.status}: ${res.statusText}`);
-        setState(prev => ({ ...prev, loading: false }));
+        setState((prev) => ({ ...prev, loading: false }));
         return;
       }
 
@@ -127,11 +132,11 @@ export default function PostPage() {
 
       if (json.error) {
         console.error("API Error:", json.error);
-        setState(prev => ({ ...prev, loading: false }));
+        setState((prev) => ({ ...prev, loading: false }));
         return;
       }
 
-      setState(prev => ({
+      setState((prev) => ({
         ...prev,
         post: json.post,
         comments: json.post.comments || [],
@@ -142,48 +147,67 @@ export default function PostPage() {
         likedByUser: json.likedByUser ?? false,
         loading: false,
       }));
-
     } catch (err) {
       console.error("Unexpected error fetching post:", err);
-      setState(prev => ({ ...prev, loading: false }));
+      setState((prev) => ({ ...prev, loading: false }));
     }
   }, [slug]);
 
   const handleAddComment = useCallback((comment: Comment) => {
-    setState(prev => ({
+    setState((prev) => ({
       ...prev,
       comments: [comment, ...prev.comments],
     }));
   }, []);
 
+  const handleEdit = () => {
+    router.push(`/dashboard/posts/edit/${postId}`);
+  };
+
+  const handleDelete = async () => {
+    if (!confirm(`Are you sure you want to delete "${postTitle}"?`)) return;
+
+    try {
+      const { error } = await supabase.from("posts").delete().eq("id", postId);
+      if (error) throw error;
+
+      alert("Post deleted successfully.");
+      router.refresh(); // Refresh page after deletion
+    } catch (err: any) {
+      console.error("Delete failed:", err);
+      alert("Failed to delete post: " + (err.message || "Unknown error"));
+    }
+  };
   const handleToggleLike = useCallback(async () => {
     const { currentUser, post } = state;
-    
+
     if (!currentUser?.id) {
       alert("Please login to like the post");
       return;
     }
     if (!post || isOwner) return;
 
-    setState(prev => ({
+    setState((prev) => ({
       ...prev,
-      actionLoading: { ...prev.actionLoading, like: true }
+      actionLoading: { ...prev.actionLoading, like: true },
     }));
 
     // Optimistic update
     const wasLiked = state.likedByUser;
     const newLikeCount = wasLiked ? post.likes - 1 : post.likes + 1;
-    
-    setState(prev => ({
+
+    setState((prev) => ({
       ...prev,
       likedByUser: !wasLiked,
       post: prev.post ? { ...prev.post, likes: newLikeCount } : prev.post,
     }));
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       const token = session?.access_token;
-      
+
       const res = await fetch(`/api/posts/${post.slug}/actions`, {
         method: "POST",
         headers: {
@@ -200,27 +224,26 @@ export default function PostPage() {
       const json = await res.json();
 
       // Update with server response
-      setState(prev => ({
+      setState((prev) => ({
         ...prev,
         likedByUser: json.liked,
         post: prev.post ? { ...prev.post, likes: json.total_likes } : prev.post,
       }));
-
     } catch (err) {
       console.error("Failed to like post:", err);
-      
+
       // Revert optimistic update
-      setState(prev => ({
+      setState((prev) => ({
         ...prev,
         likedByUser: wasLiked,
         post: prev.post ? { ...prev.post, likes: post.likes } : prev.post,
       }));
-      
+
       alert("Failed to like post. Please try again.");
     } finally {
-      setState(prev => ({
+      setState((prev) => ({
         ...prev,
-        actionLoading: { ...prev.actionLoading, like: false }
+        actionLoading: { ...prev.actionLoading, like: false },
       }));
     }
   }, [state.currentUser, state.post, state.likedByUser, isOwner]);
@@ -255,9 +278,11 @@ export default function PostPage() {
     return (
       <div className="min-h-screen bg-slate-50 p-6 flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">Post not found</h1>
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">
+            Post not found
+          </h1>
           <Link
-            href="/"
+            href="/posts"
             className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-white font-semibold shadow-md bg-gradient-to-r from-blue-600 to-cyan-500 hover:shadow-xl hover:-translate-y-1 transform transition-all duration-200"
           >
             <ArrowLeft size={16} /> Back to Feed
@@ -268,14 +293,14 @@ export default function PostPage() {
   }
 
   const { post } = state;
-
+console.log("Post image URL:", (post as any).image_url);
   return (
     <div className="min-h-screen bg-slate-50 p-6 flex flex-col lg:flex-row gap-6">
       <div className="flex-1 space-y-6">
         {/* Back Button */}
         <div className="flex justify-start mb-6">
           <Link
-            href="/"
+            href="/posts"
             className="flex items-center gap-2 px-4 py-2 rounded-lg text-white font-semibold shadow-md bg-gradient-to-r from-blue-600 to-cyan-500 hover:shadow-xl hover:-translate-y-1 transform transition-all duration-200"
           >
             <ArrowLeft size={16} /> Back to Feed
@@ -285,11 +310,15 @@ export default function PostPage() {
         {/* Post Card */}
         <div className="bg-white rounded-2xl shadow-md p-8 space-y-6 w-full lg:w-[850px]">
           <h1 className="text-4xl font-bold text-gray-900">{post.title}</h1>
-          <p className="text-gray-500">by {post.users?.username || "Unknown"}</p>
+          <p className="text-gray-500">
+            by {post.users?.username || "Unknown"}
+          </p>
 
           {/* Category & Tags */}
           {post.category_name && (
-            <p className="text-sm text-gray-500">Category: {post.category_name}</p>
+            <p className="text-sm text-gray-500">
+              Category: {post.category_name}
+            </p>
           )}
           {post.tags && post.tags.length > 0 && (
             <div className="flex flex-wrap gap-2">
@@ -303,9 +332,20 @@ export default function PostPage() {
               ))}
             </div>
           )}
+          
 
           {/* Post Viewer & Content */}
-          <PostViewer featherType={post.feather_type} />
+          <PostViewer
+            featherType={post.feather_type}
+            content={post.content || ""}
+            videoUrl={(post as any).video_url || ""} // Use correct property names or provide defaults
+            audioUrl={(post as any).audio_url || ""}
+            imageUrl={(post as any).image_url || ""}
+            linkUrl={(post as any).link_url || ""}
+            quoteText={(post as any).quote || ""}
+            quoteAuthor={(post as any).author || ""}
+          />
+
           <div className="prose max-w-none text-gray-800">
             <ReactMarkdown>{post.content}</ReactMarkdown>
           </div>
@@ -317,7 +357,9 @@ export default function PostPage() {
               likedByUser={state.likedByUser}
               size="md"
               onClick={handleToggleLike}
-              disabled={!state.currentUser?.id || isOwner || state.actionLoading.like}
+              disabled={
+                !state.currentUser?.id || isOwner || state.actionLoading.like
+              }
               loading={state.actionLoading.like}
             />
             <span className="text-gray-600">{post.view_count} views</span>
@@ -325,10 +367,16 @@ export default function PostPage() {
             <div className="ml-auto flex gap-2">
               {isOwner ? (
                 <>
-                  <button className="flex items-center gap-2 px-4 py-2 rounded-lg text-white font-semibold shadow-md bg-gradient-to-r from-green-400 to-green-500 hover:shadow-xl hover:-translate-y-1 transform transition-all duration-200">
+                  <button
+                    onClick={handleEdit}
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg text-white font-semibold shadow-md bg-gradient-to-r from-green-400 to-green-500 hover:shadow-xl hover:-translate-y-1 transform transition-all duration-200"
+                  >
                     <Edit size={16} /> Edit
                   </button>
-                  <button className="flex items-center gap-2 px-4 py-2 rounded-lg text-white font-semibold shadow-md bg-gradient-to-r from-red-500 to-red-600 hover:shadow-xl hover:-translate-y-1 transform transition-all duration-200">
+                  <button
+                    onClick={handleDelete}
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg text-white font-semibold shadow-md bg-gradient-to-r from-red-500 to-red-600 hover:shadow-xl hover:-translate-y-1 transform transition-all duration-200"
+                  >
                     <Trash2 size={16} /> Delete
                   </button>
                 </>
@@ -339,7 +387,7 @@ export default function PostPage() {
                       href={`/posts/${state.prevPost.slug}`}
                       className="flex items-center gap-2 px-4 py-2 rounded-lg text-gray-800 font-semibold shadow-sm bg-gray-200 hover:shadow-md hover:-translate-y-0.5 transform transition-all duration-200"
                     >
-                      <ChevronLeft size={16} /> {state.prevPost.title}
+                      <ChevronLeft size={16} /> Prev Post :{state.prevPost.slug}
                     </Link>
                   )}
                   {state.nextPost && (
@@ -377,7 +425,9 @@ export default function PostPage() {
             />
           ) : (
             <div className="text-center py-8">
-              <p className="text-gray-500 mb-4">Login to comment and interact with this post</p>
+              <p className="text-gray-500 mb-4">
+                Login to comment and interact with this post
+              </p>
               <Link
                 href="/login"
                 className="inline-flex items-center px-4 py-2 rounded-lg text-white font-semibold shadow-md bg-gradient-to-r from-blue-600 to-cyan-500 hover:shadow-xl hover:-translate-y-1 transform transition-all duration-200"

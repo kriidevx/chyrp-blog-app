@@ -1,20 +1,26 @@
-'use client';
-import Link from 'next/link';
+"use client";
+
+import Link from "next/link";
+import { useAuth } from "@/context/AuthContext";
 
 export default function AuthButtons() {
+  const { user } = useAuth();
+
+  if (user) return null;
+
   return (
-    <div className="flex gap-4">
+    <div className="flex items-center space-x-4">
       <Link
         href="/auth/login"
-        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-1 rounded"
+        className="px-4 py-2 rounded-md border border-cyan-500 text-cyan-600 font-semibold hover:bg-cyan-50 transition"
       >
-        Login
+        Log In
       </Link>
       <Link
         href="/auth/signup"
-        className="bg-green-600 hover:bg-green-700 text-white px-4 py-1 rounded"
+        className="px-5 py-2 rounded-md bg-gradient-to-r from-blue-600 to-cyan-500 text-white font-semibold hover:from-cyan-500 hover:to-blue-600 transition"
       >
-        Signup
+        Get Started
       </Link>
     </div>
   );

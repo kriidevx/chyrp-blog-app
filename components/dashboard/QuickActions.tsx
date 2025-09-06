@@ -48,11 +48,20 @@ export default function QuickActions({
       {/* Spacer */}
       <div className="flex-grow" />
 
-      {/* View Profile button */}
+      {/* View Profile button with animated blue-cyan gradient border */}
       <Link href={`/profile/${username}`} passHref>
-        <button className="p-3 bg-white/10 backdrop-blur-3xl border border-white/20 rounded-2xl hover:bg-white/20 transition-all duration-300">
-          <User className="w-5 h-5 text-slate-900" />
-        </button>
+        <div className="relative flex items-center justify-center">
+          {/* Animated gradient ring */}
+          <span className="absolute w-16 h-16 rounded-full bg-gradient-to-r from-blue-500 via-cyan-400 to-blue-500 animate-gradient-xy p-[2px]">
+            <span className="block w-full h-full rounded-full bg-slate-50"></span>
+          </span>
+          <button
+            className="relative p-3 rounded-full bg-white/10 backdrop-blur-3xl border border-white/20 hover:bg-white/20 transition-colors duration-300 flex items-center justify-center cursor-pointer"
+            aria-label={`View profile of ${username}`}
+          >
+            <User className="w-6 h-6 text-slate-900 transition-colors duration-300 hover:text-cyan-500" />
+          </button>
+        </div>
       </Link>
     </div>
   );

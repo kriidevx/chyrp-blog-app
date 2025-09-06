@@ -7,7 +7,7 @@ import { FileText, Eye, Heart, MessageCircle } from "lucide-react";
 import QuickActions from "@/components/dashboard/QuickActions";
 import Analytics from "@/components/dashboard/Analytics";
 import PostsManager from "@/components/dashboard/posts/PostsManager";
-import NewPostManager from "@/components/newPost/NewPostManager"; // ✅ Use manager
+import NewPostManager from "@/components/newPost/NewPostManager";
 import { supabase } from "@/lib/supabase";
 
 export default function DashboardPage() {
@@ -44,12 +44,13 @@ export default function DashboardPage() {
   const [draggedPost, setDraggedPost] = useState<number | null>(null);
 
   // ----------------------------
-  // Initialize Dashboard
+  // Initialize Dashboard: session, profile, posts, analytics
   // ----------------------------
   useEffect(() => {
     async function initializeDashboard() {
       setLoadingUser(true);
       try {
+        // Get current auth session from Supabase
         const {
           data: { session },
           error: sessionError,
@@ -63,21 +64,23 @@ export default function DashboardPage() {
         const token = session.access_token;
         setAccessToken(token);
 
-        async function fetchUsername() {
-          const res = await fetch("/api/users/username");
-          if (!res.ok) {
-            console.error("Failed to fetch username");
-            return null;
+        // Fetch user profile username
+        if (session.user) {
+          const { data: profile, error: profileError } = await supabase
+            .from("users")
+            .select("username")
+            .eq("id", session.user.id)
+            .single();
+
+          if (profileError || !profile) {
+            console.error("Failed to fetch user profile:", profileError);
+            setUsername("User");
+          } else {
+            setUsername(profile.username);
           }
-          const username = await res.text(); // use .text() for plain string
-          return username;
         }
 
-        // Usage in an async context
-        const username = await fetchUsername();
-
-        setUsername(username || "User");
-
+        // Fetch posts of the current user
         const postsRes = await fetch("/api/posts/user", {
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -85,6 +88,7 @@ export default function DashboardPage() {
         const postsData = await postsRes.json();
         setPosts(postsData.posts || []);
 
+        // Fetch analytics data
         const analyticsRes = await fetch("/api/dashboard/analytics", {
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -129,10 +133,10 @@ export default function DashboardPage() {
     }
 
     initializeDashboard();
-  }, []);
+  }, [router]);
 
   // ----------------------------
-  // Filtered posts for display
+  // Posts filtered by status and search query
   // ----------------------------
   const filteredPosts = posts.filter((post) => {
     const isPublished = post.published === true || post.published === "true";
@@ -147,7 +151,7 @@ export default function DashboardPage() {
   });
 
   // ----------------------------
-  // Render
+  // Render loading, error, or dashboard content
   // ----------------------------
   if (loadingUser) return <p className="text-center">Loading...</p>;
   if (error) return <p className="text-center text-red-500">{error}</p>;
@@ -155,7 +159,7 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-slate-50 py-8 px-4 md:px-6 lg:px-8 max-w-full">
       <div className="max-w-7xl mx-auto">
-        {/* Header & QuickActions */}
+        {/* Header & Quick Actions */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-12 gap-6 md:gap-0">
           <div>
             <h1 className="text-4xl md:text-5xl font-black mb-4">
@@ -169,7 +173,7 @@ export default function DashboardPage() {
           </div>
           <QuickActions
             username={username}
-            currentUserName={username} // same as username
+            currentUserName={username}
             onPostSaved={(newPost) => setPosts((prev) => [newPost, ...prev])}
             onOpenNewPost={() => setShowNewPostManager(true)}
             loading={false}
@@ -180,7 +184,7 @@ export default function DashboardPage() {
               currentUserName={username}
               onPostSaved={(newPost) => {
                 setPosts((prev) => [newPost, ...prev]);
-                setShowNewPostManager(false); // close modal after saving
+                setShowNewPostManager(false);
               }}
             />
           )}

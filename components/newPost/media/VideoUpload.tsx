@@ -1,7 +1,7 @@
 'use client';
 import React, { useRef, useState, useEffect } from 'react';
 import { Video as VideoIcon, Upload, Trash2 } from 'lucide-react';
-import VideoPlayer from '@/components/newPost/mediaView/VideoPlayer';
+import VideoPlayer from '@/components/FeatherView/VideoPlayer';
 
 interface VideoUploaderProps {
   value?: File | null;

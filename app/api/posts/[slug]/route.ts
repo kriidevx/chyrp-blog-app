@@ -12,22 +12,20 @@ function getSlug(req: NextRequest): string {
 }
 
 async function getCurrentUserFromToken(token: string) {
-  if (!token) {
-    return null;
-  }
-  
+  if (!token) return null;
+
   try {
     const supabaseAuth = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
-    
+
     const { data: userData, error } = await supabaseAuth.auth.getUser(token);
     if (error) {
       console.error("Invalid token:", error);
       return null;
     }
-    
+
     return userData.user;
   } catch (error) {
     console.error("Token validation error:", error);
@@ -35,24 +33,18 @@ async function getCurrentUserFromToken(token: string) {
   }
 }
 
+// ✅ Updated increment function using RPC
 async function incrementViewCount(postId: string) {
-  try {
-    const { error } = await supabase
-      .from("posts")
-      .update({ view_count: supabase.sql`view_count + 1` })
-      .eq("id", postId);
-      
-    if (error) {
-      console.error("Error incrementing view count:", error);
-    }
-  } catch (error) {
-    console.error("View count update failed:", error);
+  const { error } = await supabase.rpc("increment_post_view_count", { post_id: postId });
+
+  if (error) {
+    console.error("Error incrementing view count:", error);
   }
 }
 
 export async function GET(req: NextRequest) {
   const slug = getSlug(req);
-  
+
   if (!slug) {
     return NextResponse.json({ error: "Invalid slug" }, { status: 400 });
   }
@@ -61,7 +53,7 @@ export async function GET(req: NextRequest) {
     // Get current user from token
     const authHeader = req.headers.get("authorization");
     let currentUser = null;
-    
+
     if (authHeader?.startsWith("Bearer ")) {
       const token = authHeader.split(" ")[1];
       currentUser = await getCurrentUserFromToken(token);
@@ -101,25 +93,24 @@ export async function GET(req: NextRequest) {
 
     // Get like count and user's like status in parallel
     const [likeCountResult, userLikeResult, tagsResult] = await Promise.all([
-      // Get total like count
       supabase
         .from("likes")
         .select("*", { count: "exact", head: true })
         .eq("post_id", postData.id),
-      
-      // Check if current user liked this post
-      currentUserId ? supabase
-        .from("likes")
-        .select("id")
-        .eq("post_id", postData.id)
-        .eq("user_id", currentUserId)
-        .maybeSingle() : Promise.resolve({ data: null }),
-      
-      // Get post tags
+
+      currentUserId
+        ? supabase
+            .from("likes")
+            .select("id")
+            .eq("post_id", postData.id)
+            .eq("user_id", currentUserId)
+            .maybeSingle()
+        : Promise.resolve({ data: null }),
+
       supabase
         .from("post_tags")
         .select("tags!inner(name)")
-        .eq("post_id", postData.id)
+        .eq("post_id", postData.id),
     ]);
 
     const totalLikes = likeCountResult.count || 0;
@@ -136,7 +127,7 @@ export async function GET(req: NextRequest) {
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle(),
-      
+
       supabase
         .from("posts")
         .select("title, slug")
@@ -144,7 +135,7 @@ export async function GET(req: NextRequest) {
         .gt("created_at", postData.created_at)
         .order("created_at", { ascending: true })
         .limit(1)
-        .maybeSingle()
+        .maybeSingle(),
     ]);
 
     // Get mentioned users
@@ -181,24 +172,17 @@ export async function GET(req: NextRequest) {
     }
 
     const response = {
-      post: { 
-        ...transformedPost, 
-        comments: transformedComments 
-      },
+      post: { ...transformedPost, comments: transformedComments },
       prevPost: prevPostResult.data || null,
       nextPost: nextPostResult.data || null,
       mentioned,
       user: currentUser,
-      likedByUser
+      likedByUser,
     };
 
     return NextResponse.json(response);
-
   } catch (error) {
     console.error("Failed to fetch post:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch post" }, 
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Failed to fetch post" }, { status: 500 });
   }
 }

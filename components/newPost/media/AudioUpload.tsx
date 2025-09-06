@@ -1,7 +1,7 @@
 'use client';
 import React, { useRef, useState, useEffect } from 'react';
 import { Mic, Upload, Trash2 } from 'lucide-react';
-import AudioPlayer from '@/components/newPost/mediaView/AudioPlayer';
+import AudioPlayer from '@/components/FeatherView/AudioPlayer';
 
 interface AudioUploaderProps {
   value?: File | null;

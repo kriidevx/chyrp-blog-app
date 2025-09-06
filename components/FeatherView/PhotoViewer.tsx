@@ -1,7 +1,7 @@
 'use client';
 import React, { useState } from 'react';
 import { Eye, Download } from 'lucide-react';
-import Lightbox from '@/components/newPost/mediaView/Lightbox';
+import Lightbox from '@/components/FeatherView/Lightbox';
 
 interface PhotoProps {
   src?: string;

@@ -1,4 +1,3 @@
-// Login Page: /auth/login/page.tsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -14,7 +13,6 @@ export default function LoginPage() {
   const [loadingForm, setLoadingForm] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Redirect if already logged in and profile is ready
   useEffect(() => {
     if (!loading && user && profile?.username) {
       router.replace(`/profile/${profile.username}`);
@@ -27,8 +25,7 @@ export default function LoginPage() {
     setError(null);
 
     try {
-      // Login using Supabase client directly
-      const { data, error: authError } = await import('@/lib/supabase').then(({ supabase }) =>
+      const { data, error: authError } = await import("@/lib/supabase").then(({ supabase }) =>
         supabase.auth.signInWithPassword({ email, password })
       );
 
@@ -38,18 +35,14 @@ export default function LoginPage() {
         return;
       }
 
-      // Refresh profile in AuthProvider (auto-creates if missing)
       await refreshProfile();
 
-      // Redirect after profile is ready
       if (profile?.username) {
         router.replace(`/profile/${profile.username}`);
       } else {
-        // fallback if profile not immediately updated
-        router.replace('/');
+        router.replace("/");
       }
     } catch (err: any) {
-      console.error(err);
       setError(err.message || "Something went wrong");
     } finally {
       setLoadingForm(false);
@@ -57,43 +50,62 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-100">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-lg p-8">
-        <h1 className="text-2xl font-bold mb-6 text-center">Log In</h1>
-        <form onSubmit={handleLogin} className="space-y-4">
+    <div className="min-h-screen flex items-center justify-center bg-slate-50 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md w-full bg-white rounded-2xl shadow-lg p-8">
+        <h1 className="text-3xl font-extrabold text-blue-700 mb-6 text-center">Log In</h1>
+
+        <form onSubmit={handleLogin} className="space-y-6">
           <div>
-            <label className="block text-sm font-medium mb-1">Email</label>
+            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+              Email
+            </label>
             <input
               type="email"
+              id="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="w-full rounded-lg border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="block w-full rounded-md border border-gray-300 px-3 py-2 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 sm:text-sm"
+              placeholder="Email address"
             />
           </div>
+
           <div>
-            <label className="block text-sm font-medium mb-1">Password</label>
+            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+              Password
+            </label>
             <input
               type="password"
+              id="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="w-full rounded-lg border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="block w-full rounded-md border border-gray-300 px-3 py-2 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 sm:text-sm"
+              placeholder="Password"
             />
           </div>
-          {error && <p className="text-red-500 text-sm">{error}</p>}
+
+          {error && <p className="text-red-600 text-sm">{error}</p>}
+
           <button
             type="submit"
             disabled={loadingForm}
-            className="w-full bg-blue-600 text-white py-2 rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50"
+            className="w-full rounded-md bg-gradient-to-r from-blue-600 to-cyan-500 py-2 text-white font-semibold hover:from-cyan-500 hover:to-blue-600 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-cyan-500 transition"
           >
             {loadingForm ? "Logging in..." : "Log In"}
           </button>
         </form>
-        <p className="text-sm text-center mt-4">
+
+        <p className="mt-4 text-center text-sm text-gray-600">
           Don&apos;t have an account?{" "}
           <Link href="/auth/signup" className="text-blue-600 hover:underline">
             Sign up
+          </Link>
+        </p>
+
+        <p className="mt-2 text-center text-sm">
+          <Link href="/auth/forgot-password" className="text-cyan-600 hover:underline">
+            Forgot your password?
           </Link>
         </p>
       </div>
