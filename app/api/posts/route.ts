@@ -1,57 +1,59 @@
-import { supabase } from "@/lib/supabase";
+// app/api/posts/route.ts
 import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
 
-// GET all posts
-export async function GET() {
-  const { data, error } = await supabase.from("posts").select("*").order("created_at", { ascending: false });
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json(data);
-}
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
-// POST a new post
-export async function POST(req: NextRequest) {
-  const { title, slug, content, excerpt, author_id, published } = await req.json();
-  if (!title || !slug || !content || !author_id)
-    return NextResponse.json({ error: "title, slug, content and author_id are required" }, { status: 400 });
+export async function GET(req: NextRequest) {
+  try {
+    // Fetch posts with user, category, tags, likes & comments count
+    const { data: posts, error } = await supabase
+      .from("posts")
+      .select(`
+        id,
+        title,
+        excerpt,
+        slug,
+        view_count,
+        feather_type,
+        created_at,
+        user_id,
+        category_id,
+        users!inner(username),
+        categories!left(name),
+        tags:post_tags(
+          tag:tags(name)
+        ),
+        likes:likes(id),
+        comments:comments(id)
+      `)
+      .order("created_at", { ascending: false });
 
-  const { data, error } = await supabase
-    .from("posts")
-    .insert({
-      title,
-      slug,
-      content,
-      excerpt: excerpt || '',
-      author_id,
-      published: published ?? false,
-    })
-    .select();
+    if (error) throw error;
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json(data);
-}
+    // Format the data for FeedPage
+    const formattedPosts = posts?.map((post: any) => ({
+      id: post.id,
+      title: post.title,
+      excerpt: post.excerpt,
+      slug: post.slug,
+      view_count: post.view_count || 0,
+      feather_type: post.feather_type || "default",
+      created_at: post.created_at,
+      author: post.users?.username,
+      category: post.categories?.name,
+      tags: post.tags?.map((t: any) => t.tag.name) || [],
+      like_count: post.likes?.length || 0,
+      comment_count: post.comments?.length || 0,
+      image: null, // can later fetch from post_media if needed
+    }));
 
-// PUT update a post
-export async function PUT(req: NextRequest) {
-  const { id, title, content, excerpt, published } = await req.json();
-  if (!id) return NextResponse.json({ error: "id is required" }, { status: 400 });
-
-  const { data, error } = await supabase
-    .from("posts")
-    .update({ title, content, excerpt, published })
-    .eq("id", id)
-    .select();
-
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json(data);
-}
-
-// DELETE a post
-export async function DELETE(req: NextRequest) {
-  const { id } = await req.json();
-  if (!id) return NextResponse.json({ error: "id is required" }, { status: 400 });
-
-  const { data, error } = await supabase.from("posts").delete().eq("id", id).select();
-
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json(data);
+    return NextResponse.json(formattedPosts);
+  } catch (err: any) {
+    console.error("Supabase fetch error:", err);
+    return NextResponse.json({ error: err.message }, { status: 500 });
+  }
 }

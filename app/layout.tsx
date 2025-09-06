@@ -1,19 +1,34 @@
-import "@/styles/globals.css";
-import SupabaseProviderClient from "@/components/SupabaseProviderClient";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
-import ThemeToggle from "@/components/ThemeToggle";
+'use client';
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+import '@/styles/globals.css';
+import { AuthProvider } from '@/context/AuthContext';
+import Navbar from '@/components/layout/Navbar';
+
+import { ReactNode, useState } from 'react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import Script from 'next/script';
+
+export default function RootLayout({ children }: { children: ReactNode }) {
+  const [queryClient] = useState(() => new QueryClient());
+
   return (
-    <html lang="en" className="scroll-smooth">
-      <body className="bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 min-h-screen flex flex-col">
-        <SupabaseProviderClient>
-          <Navbar />
-          <main className="container mx-auto px-6 py-8 flex-grow">{children}</main>
-          <Footer />
-          <ThemeToggle />
-        </SupabaseProviderClient>
+    <html lang="en">
+      <head>
+        {/* You can add meta tags, fonts, or title here */}
+      </head>
+      <body className="bg-slate-50 min-h-screen text-slate-900">
+        {/* Load MathJax globally */}
+        <Script
+          src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"
+          strategy="afterInteractive"
+        />
+
+        <QueryClientProvider client={queryClient}>
+          <AuthProvider>
+            <Navbar />
+            <main className="max-w-6xl mx-auto p-4">{children}</main>
+          </AuthProvider>
+        </QueryClientProvider>
       </body>
     </html>
   );
