@@ -4,8 +4,8 @@ import PostList from './PostList';
 
 type PostsManagerProps = {
   posts: any[];
-  selectedFilter: string;
-  setSelectedFilter: (filter: string) => void;
+  selectedFilter: "all" | "published" | "draft";
+  setSelectedFilter: (filter: "all" | "published" | "draft") => void; // ✅ match the union
   searchQuery: string;
   setSearchQuery: (query: string) => void;
   selectedPosts: Set<number>;
@@ -14,7 +14,7 @@ type PostsManagerProps = {
   setShowBulkActions: (val: boolean) => void;
   draggedPost: number | null;
   setDraggedPost: (id: number | null) => void;
-  accessToken: string | null; // Add prop here
+  accessToken: string | null;
 };
 
 export default function PostsManager(props: PostsManagerProps) {

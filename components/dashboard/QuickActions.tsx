@@ -1,25 +1,40 @@
-import { PenTool, BarChart3, User } from 'lucide-react';
-import Link from 'next/link';
+import { PenTool, BarChart3, User } from "lucide-react";
+import Link from "next/link";
+import NewPostManager from "@/components/newPost/NewPostManager";
 
-export default function QuickActions({ username }: { username: string }) {
+interface QuickActionsProps {
+  username: string;
+  onOpenNewPost: () => void;
+  loading: boolean;
+  currentUserName: string;
+  onPostSaved: (newPost: any) => void;
+}
+
+export default function QuickActions({
+  username,
+  onOpenNewPost,
+  loading,
+  currentUserName,
+  onPostSaved,
+}: QuickActionsProps) {
   const scrollToAnalytics = () => {
-    const element = document.getElementById('analytics-section');
+    const element = document.getElementById("analytics-section");
     if (element) {
-      element.scrollIntoView({ behavior: 'smooth' });
+      element.scrollIntoView({ behavior: "smooth" });
     }
   };
 
   return (
     <div className="flex items-center gap-4">
       {/* New Post button */}
-      <button className="px-6 py-3 bg-gradient-to-r from-blue-600 to-cyan-500 text-white font-semibold rounded-2xl transform-gpu transition-all duration-300 hover:scale-105 hover:shadow-[0_0_30px_rgba(37,99,235,0.5)] ring-4 ring-blue-600/20">
-        <span className="flex items-center gap-2">
-          <PenTool className="w-5 h-5" />
-          New Post
-        </span>
-      </button>
+      <div>
+        <NewPostManager
+          currentUserName={currentUserName}
+          onPostSaved={onPostSaved}
+        />
+      </div>
 
-      {/* View Analytics button — same style as New Post */}
+      {/* View Analytics button */}
       <button
         onClick={scrollToAnalytics}
         className="px-6 py-3 bg-gradient-to-r from-blue-600 to-cyan-500 text-white font-semibold rounded-2xl transform-gpu transition-all duration-300 hover:scale-105 hover:shadow-[0_0_30px_rgba(37,99,235,0.5)] ring-4 ring-blue-600/20"

@@ -1,57 +1,54 @@
-/**
- * Auth Helpers
- *
- * Provides utility functions for extracting the logged-in user
- * from API requests using Supabase JWT tokens.
- *
- * Implementation Guidelines:
- * - Always call `getUserFromRequest(request)` in API routes
- *   that require authentication.
- * - Accepts JWT from either:
- *   - `Authorization: Bearer <token>` header, or
- *   - Supabase auth cookie (if you’re using SSR/session-based).
- * - Returns `null` if the user is not authenticated.
- */
-
 import { NextRequest } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+
+// Initialize Supabase client with anon key (safe for server-side use)
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 /**
- * Extracts JWT token from request (Authorization header or cookies).
+ * Extract JWT token from request
+ * Supports:
+ * - Authorization header: "Bearer <token>"
+ * - Supabase cookie: sb-access-token
  */
 function getTokenFromRequest(request: NextRequest): string | null {
-  // 1. Check Authorization header
+  // 1. Try Authorization header
   const authHeader = request.headers.get("authorization");
   if (authHeader?.startsWith("Bearer ")) {
     return authHeader.split(" ")[1];
   }
 
-  // 2. Check Supabase cookie
-  const cookieToken = request.cookies.get("sb-access-token")?.value;
-  if (cookieToken) {
-    return cookieToken;
+  // 2. Try Supabase cookie
+  const cookie = request.cookies.get("sb-access-token")?.value;
+  if (cookie) {
+    try {
+      const parsed = JSON.parse(cookie); // cookie may be JSON string
+      if (parsed?.access_token) return parsed.access_token;
+    } catch {
+      // cookie might be plain string token
+      return cookie;
+    }
   }
 
   return null;
 }
 
 /**
- * Returns the authenticated Supabase user from the request.
+ * Returns authenticated user from request
+ * Returns null if user is not authenticated or token is invalid
  */
 export async function getUserFromRequest(request: NextRequest) {
   const token = getTokenFromRequest(request);
   if (!token) return null;
 
-  const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+  const { data: { user }, error } = await supabase.auth.getUser(token);
 
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser(token);
+  if (error || !user) {
+    console.error("Supabase auth error:", error?.message);
+    return null;
+  }
 
-  if (error || !user) return null;
   return user;
 }
