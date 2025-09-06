@@ -19,13 +19,9 @@ export default function PostsLayout({ children }: { children: React.ReactNode })
         {/* Main feed area */}
         <main className="lg:col-span-3">{children}</main>
 
-        {/* Sidebar filters */}
-        <aside className="lg:col-span-1">
-          <div className="sticky top-6">
-            <PostFilters />
+       
           </div>
-        </aside>
       </div>
-    </div>
+
   );
 }
