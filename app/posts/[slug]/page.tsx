@@ -73,7 +73,7 @@ interface PostPageState {
     comment: boolean;
   };
 }
-type Props = {
+export type Props = {
   postId: number;
   postTitle: string;
 };
@@ -293,7 +293,7 @@ export default function PostPage({ postId, postTitle }: Props) {
   }
 
   const { post } = state;
-console.log("Post image URL:", (post as any).image_url);
+  console.log("Post image URL:", (post as any).image_url);
   return (
     <div className="min-h-screen bg-slate-50 p-6 flex flex-col lg:flex-row gap-6">
       <div className="flex-1 space-y-6">
@@ -332,7 +332,6 @@ console.log("Post image URL:", (post as any).image_url);
               ))}
             </div>
           )}
-          
 
           {/* Post Viewer & Content */}
           <PostViewer
