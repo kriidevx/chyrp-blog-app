@@ -1,3 +1,17 @@
+import { useState, useCallback } from 'react';
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
+
+interface User {
+  id: string;
+  username: string;
+  avatar_url?: string;
+}
+
 interface Comment {
   id: string;
   user_id: string;
@@ -26,7 +40,6 @@ export const useComments = (postSlug: string, currentUserId?: string): UseCommen
     if (!currentUserId) {
       throw new Error('Authentication required');
     }
-
     const { data: { session } } = await supabase.auth.getSession();
     const token = session?.access_token;
 
@@ -49,7 +62,6 @@ export const useComments = (postSlug: string, currentUserId?: string): UseCommen
 
     const newComment = await response.json();
     setComments(prev => [newComment, ...prev]);
-    
     return newComment;
   }, [postSlug, currentUserId]);
 
@@ -71,7 +83,7 @@ export const useComments = (postSlug: string, currentUserId?: string): UseCommen
           const updatedLikes = userAlreadyLiked
             ? currentLikes.filter(like => like.user_id !== currentUserId)
             : [...currentLikes, { id: Date.now().toString(), user_id: currentUserId }];
-          
+
           return { ...c, comment_likes: updatedLikes };
         }
         return c;
@@ -97,10 +109,6 @@ export const useComments = (postSlug: string, currentUserId?: string): UseCommen
       if (!response.ok) {
         throw new Error("Failed to like comment");
       }
-
-      // If we reach here, the server operation succeeded
-      // The optimistic update should be correct
-      
     } catch (err) {
       // Revert optimistic update on error
       setComments(prev =>
@@ -121,7 +129,7 @@ export const useComments = (postSlug: string, currentUserId?: string): UseCommen
     }
 
     const originalComments = comments;
-    
+
     // Optimistic update
     setComments(prev => prev.filter(c => c.id !== commentId));
 
@@ -133,7 +141,6 @@ export const useComments = (postSlug: string, currentUserId?: string): UseCommen
         .eq("user_id", currentUserId);
 
       if (error) throw error;
-      
     } catch (err) {
       // Revert optimistic update on error
       setComments(originalComments);

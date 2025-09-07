@@ -5,7 +5,6 @@ import { useParams, useRouter } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 import Link from "next/link";
 import { createClient } from "@supabase/supabase-js";
-
 import {
   ArrowLeft,
   Edit,
@@ -21,12 +20,12 @@ import ReactionsUI from "@/components/posts/interaction/Reactions";
 import MentionedPpl from "@/components/posts/MentionedPeople";
 import RelatedPosts from "@/components/posts/RelatedPosts";
 
+// ----- Interfaces -----
 interface User {
   id: string;
   username: string;
   avatar_url?: string;
 }
-
 interface Comment {
   id: string;
   user_id: string;
@@ -35,7 +34,6 @@ interface Comment {
   users?: User;
   comment_likes?: any[];
 }
-
 interface Post {
   id: string;
   user_id: string;
@@ -51,14 +49,12 @@ interface Post {
   users?: User;
   comments?: Comment[];
 }
-
 interface MentionedUser {
   id: string;
   username: string;
   name: string;
   avatar_url?: string;
 }
-
 interface PostPageState {
   post: Post | null;
   currentUser: User | null;
@@ -73,19 +69,19 @@ interface PostPageState {
     comment: boolean;
   };
 }
-export type Props = {
-  postId: number;
-  postTitle: string;
-};
+
+// -------- Supabase Init --------
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-export default function PostPage({ postId, postTitle }: Props) {
+// ===== Main Page Component =====
+export default function PostPage() {
   const params = useParams();
-  const slug = Array.isArray(params.slug) ? params.slug[0] : params.slug;
   const router = useRouter();
+  const slug = Array.isArray(params.slug) ? params.slug[0] : params.slug;
+
   const [state, setState] = useState<PostPageState>({
     post: null,
     currentUser: null,
@@ -101,41 +97,23 @@ export default function PostPage({ postId, postTitle }: Props) {
     },
   });
 
-  // Memoized computed values
-  const isOwner = useMemo(
-    () => state.post?.user_id === state.currentUser?.id,
-    [state.post?.user_id, state.currentUser?.id]
-  );
-
+  // --------- Data Fetcher ----------
   const fetchPostData = useCallback(async () => {
     if (!slug) return;
-
     setState((prev) => ({ ...prev, loading: true }));
-
     try {
       const {
         data: { session },
       } = await supabase.auth.getSession();
       const token = session?.access_token;
-
       const res = await fetch(`/api/posts/${slug}`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
-
       if (!res.ok) {
-        console.error(`HTTP ${res.status}: ${res.statusText}`);
         setState((prev) => ({ ...prev, loading: false }));
         return;
       }
-
       const json = await res.json();
-
-      if (json.error) {
-        console.error("API Error:", json.error);
-        setState((prev) => ({ ...prev, loading: false }));
-        return;
-      }
-
       setState((prev) => ({
         ...prev,
         post: json.post,
@@ -147,12 +125,22 @@ export default function PostPage({ postId, postTitle }: Props) {
         likedByUser: json.likedByUser ?? false,
         loading: false,
       }));
-    } catch (err) {
-      console.error("Unexpected error fetching post:", err);
+    } catch {
       setState((prev) => ({ ...prev, loading: false }));
     }
   }, [slug]);
 
+  useEffect(() => {
+    fetchPostData();
+  }, [fetchPostData]);
+
+  // --------- Memo ---------
+  const isOwner = useMemo(
+    () => state.post?.user_id === state.currentUser?.id,
+    [state.post?.user_id, state.currentUser?.id]
+  );
+
+  // --------- Comment Handler ----------
   const handleAddComment = useCallback((comment: Comment) => {
     setState((prev) => ({
       ...prev,
@@ -160,55 +148,55 @@ export default function PostPage({ postId, postTitle }: Props) {
     }));
   }, []);
 
+  // --------- Edit Handler ----------
   const handleEdit = () => {
-    router.push(`/dashboard/posts/edit/${postId}`);
+    if (!state.post) return;
+    router.push(`/dashboard/posts/edit/${state.post.id}`);
   };
 
+  // --------- Delete Handler ----------
   const handleDelete = async () => {
-    if (!confirm(`Are you sure you want to delete "${postTitle}"?`)) return;
-
+    if (!state.post) return;
+    if (!confirm(`Are you sure you want to delete "${state.post.title}"?`))
+      return;
     try {
-      const { error } = await supabase.from("posts").delete().eq("id", postId);
+      const { error } = await supabase
+        .from("posts")
+        .delete()
+        .eq("id", state.post.id);
       if (error) throw error;
-
       alert("Post deleted successfully.");
-      router.refresh(); // Refresh page after deletion
+      router.refresh();
     } catch (err: any) {
-      console.error("Delete failed:", err);
       alert("Failed to delete post: " + (err.message || "Unknown error"));
     }
   };
-  const handleToggleLike = useCallback(async () => {
-    const { currentUser, post } = state;
 
-    if (!currentUser?.id) {
+  // --------- Like Handler ----------
+  const handleToggleLike = useCallback(async () => {
+    if (!state.currentUser?.id) {
       alert("Please login to like the post");
       return;
     }
-    if (!post || isOwner) return;
-
+    if (!state.post || isOwner) return;
     setState((prev) => ({
       ...prev,
       actionLoading: { ...prev.actionLoading, like: true },
     }));
-
     // Optimistic update
     const wasLiked = state.likedByUser;
-    const newLikeCount = wasLiked ? post.likes - 1 : post.likes + 1;
-
+    const newLikeCount = wasLiked ? state.post.likes - 1 : state.post.likes + 1;
     setState((prev) => ({
       ...prev,
       likedByUser: !wasLiked,
       post: prev.post ? { ...prev.post, likes: newLikeCount } : prev.post,
     }));
-
     try {
       const {
         data: { session },
       } = await supabase.auth.getSession();
       const token = session?.access_token;
-
-      const res = await fetch(`/api/posts/${post.slug}/actions`, {
+      const res = await fetch(`/api/posts/${state.post.slug}/actions`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -216,29 +204,22 @@ export default function PostPage({ postId, postTitle }: Props) {
         },
         body: JSON.stringify({ action: "like" }),
       });
-
-      if (!res.ok) {
-        throw new Error("Failed to toggle like");
-      }
-
+      if (!res.ok) throw new Error("Failed to toggle like");
       const json = await res.json();
-
-      // Update with server response
       setState((prev) => ({
         ...prev,
         likedByUser: json.liked,
         post: prev.post ? { ...prev.post, likes: json.total_likes } : prev.post,
       }));
-    } catch (err) {
-      console.error("Failed to like post:", err);
-
-      // Revert optimistic update
+    } catch {
+      // Revert update
       setState((prev) => ({
         ...prev,
         likedByUser: wasLiked,
-        post: prev.post ? { ...prev.post, likes: post.likes } : prev.post,
+        post: prev.post
+          ? { ...prev.post, likes: state.post!.likes }
+          : prev.post,
       }));
-
       alert("Failed to like post. Please try again.");
     } finally {
       setState((prev) => ({
@@ -248,11 +229,7 @@ export default function PostPage({ postId, postTitle }: Props) {
     }
   }, [state.currentUser, state.post, state.likedByUser, isOwner]);
 
-  useEffect(() => {
-    fetchPostData();
-  }, [fetchPostData]);
-
-  // Loading state
+  // --------- Render Loading ----------
   if (state.loading) {
     return (
       <div className="min-h-screen bg-slate-50 p-6">
@@ -274,6 +251,7 @@ export default function PostPage({ postId, postTitle }: Props) {
     );
   }
 
+  // ----- Render Not Found -----
   if (!state.post) {
     return (
       <div className="min-h-screen bg-slate-50 p-6 flex items-center justify-center">
@@ -292,8 +270,8 @@ export default function PostPage({ postId, postTitle }: Props) {
     );
   }
 
+  // ---------- Main Render ----------
   const { post } = state;
-  console.log("Post image URL:", (post as any).image_url);
   return (
     <div className="min-h-screen bg-slate-50 p-6 flex flex-col lg:flex-row gap-6">
       <div className="flex-1 space-y-6">
@@ -306,14 +284,12 @@ export default function PostPage({ postId, postTitle }: Props) {
             <ArrowLeft size={16} /> Back to Feed
           </Link>
         </div>
-
         {/* Post Card */}
         <div className="bg-white rounded-2xl shadow-md p-8 space-y-6 w-full lg:w-[850px]">
           <h1 className="text-4xl font-bold text-gray-900">{post.title}</h1>
           <p className="text-gray-500">
             by {post.users?.username || "Unknown"}
           </p>
-
           {/* Category & Tags */}
           {post.category_name && (
             <p className="text-sm text-gray-500">
@@ -332,23 +308,20 @@ export default function PostPage({ postId, postTitle }: Props) {
               ))}
             </div>
           )}
-
           {/* Post Viewer & Content */}
           <PostViewer
             featherType={post.feather_type}
             content={post.content || ""}
-            videoUrl={(post as any).video_url || ""} // Use correct property names or provide defaults
+            videoUrl={(post as any).video_url || ""}
             audioUrl={(post as any).audio_url || ""}
             imageUrl={(post as any).image_url || ""}
             linkUrl={(post as any).link_url || ""}
             quoteText={(post as any).quote || ""}
             quoteAuthor={(post as any).author || ""}
           />
-
           <div className="prose max-w-none text-gray-800">
             <ReactMarkdown>{post.content}</ReactMarkdown>
           </div>
-
           {/* Likes and Actions */}
           <div className="flex items-center gap-4">
             <LikeButton
@@ -362,7 +335,6 @@ export default function PostPage({ postId, postTitle }: Props) {
               loading={state.actionLoading.like}
             />
             <span className="text-gray-600">{post.view_count} views</span>
-
             <div className="ml-auto flex gap-2">
               {isOwner ? (
                 <>
@@ -401,7 +373,6 @@ export default function PostPage({ postId, postTitle }: Props) {
               )}
             </div>
           </div>
-
           {/* Reactions and Mentions */}
           <div className="space-y-4">
             <ReactionsUI
@@ -413,7 +384,6 @@ export default function PostPage({ postId, postTitle }: Props) {
               <MentionedPpl postId={post.id} mentioned={state.mentioned} />
             )}
           </div>
-
           {/* Comment Form */}
           {state.currentUser?.id ? (
             <CommentFormUI
@@ -437,7 +407,6 @@ export default function PostPage({ postId, postTitle }: Props) {
           )}
         </div>
       </div>
-
       {/* Sidebar: Related Posts */}
       <div className="hidden lg:flex flex-col w-72 space-y-4">
         <h3 className="text-lg font-semibold text-gray-800">Related Posts</h3>
