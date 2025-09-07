@@ -1,12 +1,14 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  //experimental: {
-  //  appDir: true, // Enable /app directory routing
-  //},
   images: {
-    domains: ["your-supabase-storage-url.supabase.co"], // Add your media domains here
+    domains: ['carfiwlipundmsfsfdeh.supabase.co'],
+    unoptimized: true
   },
+  swcMinify: true,
+  compiler: {
+    removeConsole: process.env.NODE_ENV === 'production'
+  }
 };
 
 module.exports = nextConfig;
