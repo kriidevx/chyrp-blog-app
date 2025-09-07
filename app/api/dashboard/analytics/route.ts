@@ -2,17 +2,23 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getUserFromRequest } from '@/lib/auth-helpers';
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+// Use private environment variables without NEXT_PUBLIC prefix
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+  throw new Error('Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY environment variables');
+}
+
+// Initialize a single supabase client instance for server-side usage
+const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
 export async function GET(request: NextRequest) {
   try {
     const user = await getUserFromRequest(request);
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-
-    // Total posts count
+    // Total posts count for the user
     const { count: totalPosts, error: postCountError } = await supabase
       .from('posts')
       .select('id', { count: 'exact', head: true })
@@ -76,8 +82,6 @@ export async function POST(request: NextRequest) {
     const { postIds } = await request.json();
     if (!Array.isArray(postIds)) return NextResponse.json({ error: 'Invalid postIds' }, { status: 400 });
 
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-
     // Fetch posts with view_count for given IDs (user's posts only)
     const { data: posts, error: postsError } = await supabase
       .from('posts')
@@ -87,7 +91,7 @@ export async function POST(request: NextRequest) {
 
     if (postsError) throw postsError;
 
-    // Fetch likes with post_id only for counting grouped by post_id
+    // Fetch likes for counting grouped by post_id
     const { data: likesData, error: likesError } = await supabase
       .from('likes')
       .select('post_id')
